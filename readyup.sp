@@ -377,7 +377,7 @@ InitiateReadyUp()
 		SetConVarBool(director_no_specials, true);
 	}
 
-	SetConVarFlags(god, GetConVarFlags(god) - FCVAR_NOTIFY);
+	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, true);
 	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, true);
@@ -392,15 +392,10 @@ InitiateLive()
 {
 	inReadyUp = false;
 	inLiveCountdown = false;
-	/*if (readyCountdownTimer != INVALID_HANDLE)*/
-	/*{*/
-		/*CloseHandle(readyCountdownTimer);*/
-		/*readyCountdownTimer = INVALID_HANDLE;*/
-	/*}*/
 
 	SetConVarBool(director_no_mobs, false);
 	SetConVarBool(director_no_specials, false);
-	SetConVarFlags(god, GetConVarFlags(god) - FCVAR_NOTIFY);
+	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, false);
 	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, false);
