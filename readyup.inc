@@ -1,5 +1,5 @@
 #if defined  _readyup_included_
-	#endinput
+        #endinput
 #endif
 #define _readyup_included_
 
@@ -13,4 +13,16 @@
  */
 native bool:AddStringToReadyFooter(const String:footer[]);
 
-// vim: ft=sourcepawn
+/**
+ * Whether or not the game is currently waiting for players to ready up.
+ *
+ * @return          True if the game is currently in the ready-up phase.
+ */
+native bool:IsInReady()
+
+/**
+ * Called when the live countdown ends and the round goes live
+ */
+forward OnRoundIsLive();
+
+// vim: ft=sourcepawn et sw=8

@@ -12,7 +12,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "0",
+	version = "1",
 	url = ""
 };
 
@@ -25,8 +25,8 @@ enum L4D2Team
 }
 
 // Plugin Cvars
-new Handle:l4d_ready_server_cfg;
 new Handle:l4d_ready_disable_spawns;
+new Handle:l4d_ready_server_cfg;
 
 // Game Cvars
 new Handle:director_no_mobs;
@@ -42,17 +42,23 @@ new z_common_limit_initial;
 new z_ghost_delay_max_initial;
 new z_ghost_delay_min_initial;
 
+new Handle:casterTrie;
+new Handle:liveForward;
 new Handle:menuPanel;
 new Handle:readyCountdownTimer;
+new String:readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
+new bool:inLiveCountdown = false;
 new bool:inReadyUp;
 new bool:isPlayerReady[MAXPLAYERS + 1];
-new readyDelay;
-new String:readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
 new footerCounter = 0;
+new readyDelay;
+new casterCount = 0;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
+	CreateNative("IsInReady", Native_IsInReady);
+	liveForward = CreateGlobalForward("OnRoundIsLive", ET_Event);
 	return APLRes_Success;
 }
 
@@ -63,8 +69,6 @@ public OnPluginStart()
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up");
 
 	HookEvent("round_start", RoundStart_Event);
-	HookEvent("bot_player_replace", BotPlayerReplace_Event);
-	HookEvent("player_team", PlayerTeam_Event);
 
 	director_no_mobs = FindConVar("director_no_mobs");
 	director_no_specials = FindConVar("director_no_specials");
@@ -76,14 +80,39 @@ public OnPluginStart()
 	z_ghost_delay_min = FindConVar("z_ghost_delay_min");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 
-	RegConsoleCmd("sm_ready", Ready_Cmd);
-	RegConsoleCmd("sm_unready", Unready_Cmd);
-	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
+	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN);
 	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN);
+	RegConsoleCmd("sm_notcasting", NotCasting_Cmd);
+	RegConsoleCmd("sm_ready", Ready_Cmd);
+	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
+	RegConsoleCmd("sm_unready", Unready_Cmd);
 
 	// Debug Commands
 	RegConsoleCmd("sm_initready", InitReady_Cmd);
 	RegConsoleCmd("sm_initlive", InitLive_Cmd);
+	casterTrie = CreateTrie();
+}
+
+public OnMapStart()
+{
+	/* OnMapEnd needs this to work */
+}
+
+/* This ensures all cvars are reset if the map is changed during ready-up */
+public OnMapEnd()
+{
+	if (inReadyUp)
+		InitiateLive();
+}
+
+public OnClientDisconnect(client)
+{
+	decl String:buffer[64];
+	GetClientAuthString(client, buffer, sizeof(buffer));
+	if (RemoveFromTrie(casterTrie, buffer))
+	{
+		casterCount--;
+	}
 }
 
 public Native_AddStringToReadyFooter(Handle:plugin, numParams)
@@ -102,9 +131,39 @@ public Native_AddStringToReadyFooter(Handle:plugin, numParams)
 	return _:false;
 }
 
+public Native_IsInReady(Handle:plugin, numParams)
+{
+	return _:inReadyUp;
+}
+
+public Action:Caster_Cmd(client, args)
+{
+	decl String:buffer[64];
+	GetCmdArg(1, buffer, sizeof(buffer));
+
+	new target = FindTarget(client, buffer, true, false);
+	if (target > 0 && GetClientAuthString(target, buffer, sizeof(buffer)))
+	{
+		SetTrieValue(casterTrie, buffer, 1);
+		PrintToChat(client, "Registered %N as a caster", target);
+	}
+	else
+	{
+		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+	}
+}
+
+public Action:NotCasting_Cmd(client, args)
+{
+	decl String:buffer[64];
+	GetClientAuthString(client, buffer, sizeof(buffer));
+	RemoveFromTrie(casterTrie, buffer);
+}
+
 public Action:ForceStart_Cmd(client, args)
 {
 	InitiateLiveCountdown();
+	return Plugin_Handled;
 }
 
 public Action:Ready_Cmd(client, args)
@@ -154,34 +213,33 @@ public Action:ToggleReady_Cmd(client, args)
 	return Plugin_Handled;
 }
 
-public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
+/* No need to do any other checks since it seems like this is required no matter what since the intros unfreezes players after the animation completes */
+public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
 {
-	// InitiateReadyUp();
-}
-
-public BotPlayerReplace_Event(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	new client = GetClientOfUserId(GetEventInt(event, "player"));
-	PrintToChatAll("%s", name);
-
 	if (inReadyUp)
 	{
-		SetFrozen(client, true);
+		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor && !(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
+		{
+			SetFrozen(client, true);
+		}
 	}
 }
 
-public PlayerTeam_Event(Handle:event, const String:name[], bool:dontBroadcast)
+public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	InitiateReadyUp();
 }
 
 public Action:InitReady_Cmd(client, args)
 {
 	InitiateReadyUp();
+	return Plugin_Handled;
 }
 
 public Action:InitLive_Cmd(client, args)
 {
 	InitiateLive();
+	return Plugin_Handled;
 }
 
 public DummyHandler(Handle:menu, MenuAction:action, param1, param2) { }
@@ -214,23 +272,28 @@ UpdatePanel()
 	menuPanel = CreatePanel();
 
 	decl String:nameBuf[MAX_NAME_LENGTH+4];
+	decl String:authBuffer[64];
+	decl bool:caster;
+	decl dummy;
 	for (new client = 1; client <= MaxClients; client++)
 	{
 		if(IsClientInGame(client) && !IsFakeClient(client))
 		{
 			GetClientName(client, nameBuf, sizeof(nameBuf));
-			if (IsPlayer(client))
+			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
+			caster = GetTrieValue(casterTrie, authBuffer, dummy);
+			if (IsPlayer(client) || caster)
 			{
 				if (isPlayerReady[client])
 				{
-					PrintHintText(client, "You are ready.\nSay !unready to unready.");
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", ++readyCount, nameBuf);
+					if (!inLiveCountdown) PrintHintText(client, "You are ready.\nSay !unready to unready.");
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s%s\n", ++readyCount, nameBuf, caster ? " [Caster]" : "");
 					StrCat(readyBuffer, sizeof(readyBuffer), nameBuf);
 				}
 				else
 				{
-					PrintHintText(client, "You are not ready.\nSay !ready to ready up.");
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", ++unreadyCount, nameBuf);
+					if (!inLiveCountdown) PrintHintText(client, "You are not ready.\nSay !ready to ready up.");
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s%s\n", ++unreadyCount, nameBuf, caster ? " [Caster]" : "");
 					StrCat(unreadyBuffer, sizeof(unreadyBuffer), nameBuf);
 				}
 			}
@@ -301,6 +364,8 @@ InitiateReadyUp()
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
 	inReadyUp = true;
+	inLiveCountdown = false;
+	readyCountdownTimer = INVALID_HANDLE;
 
 	z_common_limit_initial = GetConVarInt(z_common_limit);
 	z_ghost_delay_max_initial = GetConVarInt(z_ghost_delay_max);
@@ -311,30 +376,33 @@ InitiateReadyUp()
 	{
 		SetConVarBool(director_no_specials, true);
 	}
+
+	SetConVarFlags(god, GetConVarFlags(god) - FCVAR_NOTIFY);
 	SetConVarBool(god, true);
+	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, true);
 	SetConVarInt(z_common_limit, 0);
 	SetConVarInt(z_ghost_delay_max, 0);
 	SetConVarInt(z_ghost_delay_min, 0);
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
-
-	for (new client = 1; client <= MaxClients; client++)
-	{
-		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
-		{
-			SetFrozen(client, true);
-		}
-	}
 }
 
 InitiateLive()
 {
 	inReadyUp = false;
+	inLiveCountdown = false;
+	/*if (readyCountdownTimer != INVALID_HANDLE)*/
+	/*{*/
+		/*CloseHandle(readyCountdownTimer);*/
+		/*readyCountdownTimer = INVALID_HANDLE;*/
+	/*}*/
 
 	SetConVarBool(director_no_mobs, false);
 	SetConVarBool(director_no_specials, false);
+	SetConVarFlags(god, GetConVarFlags(god) - FCVAR_NOTIFY);
 	SetConVarBool(god, false);
+	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, false);
 	SetConVarInt(z_common_limit, z_common_limit_initial);
 	SetConVarInt(z_ghost_delay_max, z_ghost_delay_max_initial);
@@ -354,19 +422,29 @@ InitiateLive()
 	{
 		readyFooter[i] = "";
 	}
+	Call_StartForward(liveForward);
+	Call_Finish();
 }
 
 bool:CheckFullReady()
 {
+	decl String:authBuffer[64];
+	decl bool:caster;
+	decl dummy;
 	new readyCount = 0;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && IsPlayer(client) && isPlayerReady[client])
+		if (IsClientInGame(client))
 		{
-			readyCount++;
+			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
+			caster = GetTrieValue(casterTrie, authBuffer, dummy);
+			if((IsPlayer(client) || caster) && isPlayerReady[client])
+			{
+				readyCount++;
+			}
 		}
 	}
-	return readyCount >= GetConVarInt(survivor_limit) + GetConVarInt(z_max_player_zombies);
+	return readyCount >= GetConVarInt(survivor_limit) + GetConVarInt(z_max_player_zombies) + casterCount;
 }
 
 InitiateLiveCountdown()
@@ -374,6 +452,7 @@ InitiateLiveCountdown()
 	if (readyCountdownTimer == INVALID_HANDLE)
 	{
 		PrintHintTextToAll("Going live!\nSay !unready to cancel");
+		inLiveCountdown = true;
 		readyDelay = 5;
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
@@ -399,6 +478,7 @@ CancelFullReady()
 {
 	if (readyCountdownTimer != INVALID_HANDLE)
 	{
+		inLiveCountdown = false;
 		CloseHandle(readyCountdownTimer);
 		readyCountdownTimer = INVALID_HANDLE;
 		PrintHintTextToAll("Countdown Cancelled!");
