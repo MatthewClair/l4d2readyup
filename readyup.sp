@@ -183,8 +183,9 @@ public Action:Secret_Cmd(client, args)
 				InitiateLiveCountdown();
 
 			UpdatePanel();
+			return Plugin_Handled;
 		}
-		return Plugin_Handled;
+		
 	}
 	return Plugin_Continue;
 }
