@@ -1,0 +1,101 @@
+#Unixing Ready-Up
+One main point of the Unix philosophy is "do one thing and do it well".  The current ready-up (l4dready) does three things and none of them well.  It has a ton of old features that don't work and are never used, it has bugs and lots of room for improvement.
+
+This is my attempt at Unixing ready-up.  The functionality of ready-up can primarily be sorted into three different categories:
+
+* Ready-up
+* Pause
+* Player management
+
+Connect and disconnect messages have not been implemented but will likely be included in their own fourth plugin.
+
+#Ready-up
+The plugin `readyup.sp` is my implementation of ready-up.  It removes a lot of configuration options included in `l4dready` while keeping all of the useful functions and adding more.
+
+##Console Variables (Cvars)
+This plugin now only has three console variables, with only two actually being used.
+
+    l4d_ready_enabled 1 // This cvar doesn't do anything, but if it is 0 the logger wont log this game.
+
+The logger plugin currently requires this Cvar to be set to 1 otherwise the round wont be logged so this Cvar could not be removed.  I personally believe that plugins should only be enabled or disabled through loading or unloading them.  In the old `l4dready`, disabling the plugin doesn't disable all functionality as pauses and player management still exist when the plugin is disabled.  Confusion (or bugs) such as that are easier to avoid if the plugin is stored in `plugins/optional` and loaded or unloaded when required.
+
+    l4d_ready_server_cfg "Confogl" // Configname to display on the ready-up panel
+
+This Cvar configures what config name should be displayed on the ready-up panel directly below the last player listed.  This Cvar is also used by the logger plugin to report the running config.
+
+    l4d_ready_disable_spawns 0 // Prevent SI from having spawns during ready-up
+
+This is the only Cvar that actually impacts the functionality of ready-up.  Enabling this prevents SI from getting spawns during ready-up.
+
+The follow Cvars exist in `l4dready` but no longer exist (with a little blurb why for each Cvar):
+
+    l4d_ready_version n // Version numbers can be checked with 'sm plugins list'
+    l4d_ready_competition 0 // This function has been long superceded by Confogl
+    l4d_ready_both_halves 0 // Having ready for only one half gives one SI team less chance to set up and isn't balanced
+    l4d_ready_minimum_players 0 // The new readyup plugin automatically detects the minimum number of players based on survivor limit, infected limit and number of registed casters
+    l4d_ready_search_key_disable 0 // Doesn't run (partially runs, see above about enabling l4dready) if the search key is not set.  Not untuitive or entirely useful.
+    pause cvars // See Pause
+    l4d_ready_connect_enabled 1 // Not a function of a ready-up plugin
+    l4d_block_spectator_globalchat 0 // Unintuitive function that shouldn't be part of ready-up
+
+##Commands
+The plugin supports the usual array of commands one would expect in a ready-up plugin.
+
+    sm_caster
+    sm_forcestart
+    sm_notcasting
+    sm_ready
+    sm_toggleready
+    sm_unready
+
+`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truely not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can deregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.
+
+There is also one easter-egg command that only some players are able to use (it is nothing bad, just an alternate way to ready-up with a little surprise!)
+
+##Extending Ready-up
+This plugins includes two natives and one forward for plugin developers.
+
+    native bool:AddStringToReadyFooter(const String:footer[]);
+
+This allows other plugins to add text to the ready-up panel.  The text must be shorter than 65 characters including the null terminating byte.  Ready-up allows up to 10 extra strings to be added to the panel.  These strings are reset as soon as the round goes live.  This native is always available but logically should only be called after a `round_start` event and before ready-up goes live.  Returns true if the string is added or false if it is not (not enough room or the string is too long).  This allows other things to be added to the panel such as map distance, previous round score, server name, etc without having to modify the ready-up plugin.
+
+    native bool:IsInReady()
+
+This simply returns if the round is current in ready-up.  The live countdown is also included as the countdown may be cancelled.
+
+    forward OnRoundIsLive();
+
+This is called when a round goes live and all other live-initiating code has been completed.  Text added with AddStringToReadyFooter() after this will be kept for the next round.
+
+#Pause
+This plugin deals only with pauses.  It also has a mini ready-up to prevent an unpause when one team is not ready.  Teams have no limit to the number of pauses as the number is generally configured high enough to never have issues.  Every player can control their team's ready status so make sure your team is ready before you actually mark your team as ready.  The plugin announces when players are fully connected as to be expected.  Chat during pause is now coloured as it normally would be during the game.
+
+Pause now includes no configuration Cvars.  The old Cvars were generally set to limits so high they could never be reached so they are no longer supported.
+
+##Incapped Player Pickups & Pauses
+Unlike `l4dready` this plugin does not block pick-up during pauses.  It allows pauses because it doesn't break pick-ups.  The only thing to remember is you must be holding `+use` (default `E`) before the round goes live again.  There is five second countdown so this should be a non-issue.
+
+##Commands
+
+    sm_pause
+    sm_unpause
+    sm_ready
+    sm_unready
+    sm_forcepause
+    sm_forceunpause
+
+`sm_pause` is used to initiate a pause as normal.  `sm_unpause` and `sm_ready` are the same command and mark your team as ready for an unpause.  `sm_unready` marks your team as not ready. `sm_forcepause` creates an admin pause which only other admins can unpause with `sm_forceunpause`.  `sm_forceunpause` can unpause either normal or admin pauses without requiring the teams to be ready.
+
+#Player Management
+This is probably one of the most confusing parts of `l4dready` due to its use of timers and retries.  This plugin works mostly as it does before but with a slightly different syntax for `sm_swapto` (see Commands).  Whenever a swap is to be performed, all players pending a swap will first be moved to the spectator team.  If they cannot be swapped to their target team they will remain on the spectator team.
+
+##Commands
+
+    sm_swap
+    sm_swapto
+    sm_swapteams
+    sm_spectate
+    sm_spec
+    sm_s
+
+`sm_swap` swaps listed players to their opposite team.  This has no effect on spectators.  It is now able to take `@all`, `@infected`, except `@me` and `@!me`.  `sm_swapteams` swaps all human players on the infected and survivor teams.  `sm_swapto` functions as before but has a slightly different syntax to allow for a much simpler implementation in code.  Now the team must be specified before the players.  Ex `sm_swapto 2 CanadaRox` would swap the player CanadaRox to the survivor team (if there is room).  `sm_spectate`, `sm_spec`, and `sm_s` are all variations of the standard spectate command which moves the issuing player to the spectator team.
