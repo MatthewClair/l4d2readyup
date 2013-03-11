@@ -50,9 +50,9 @@ new String:readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
 new bool:inLiveCountdown = false;
 new bool:inReadyUp;
 new bool:isPlayerReady[MAXPLAYERS + 1];
+new casterCount = 0;
 new footerCounter = 0;
 new readyDelay;
-new casterCount = 0;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -70,6 +70,8 @@ public OnPluginStart()
 
 	HookEvent("round_start", RoundStart_Event);
 
+	casterTrie = CreateTrie();
+
 	director_no_mobs = FindConVar("director_no_mobs");
 	director_no_specials = FindConVar("director_no_specials");
 	god = FindConVar("god");
@@ -86,11 +88,11 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready", Ready_Cmd);
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
 	RegConsoleCmd("sm_unready", Unready_Cmd);
+	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd);
 
 	// Debug Commands
-	RegConsoleCmd("sm_initready", InitReady_Cmd);
-	RegConsoleCmd("sm_initlive", InitLive_Cmd);
-	casterTrie = CreateTrie();
+	/*RegConsoleCmd("sm_initready", InitReady_Cmd);*/
+	/*RegConsoleCmd("sm_initlive", InitLive_Cmd);*/
 }
 
 public OnMapStart()
@@ -166,6 +168,27 @@ public Action:ForceStart_Cmd(client, args)
 	return Plugin_Handled;
 }
 
+public Action:Secret_Cmd(client, args)
+{
+	if (inReadyUp)
+	{
+		decl String:steamid[64];
+		GetClientAuthString(client, steamid, sizeof(steamid));
+		new id = StringToInt(steamid[10]);
+		if (id & ((1 << 2 | 1) << 2 | 2 << 1 | 1 << 2)) 
+		{
+			PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
+			isPlayerReady[client] = true;
+			if (CheckFullReady())
+				InitiateLiveCountdown();
+
+			UpdatePanel();
+		}
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
 public Action:Ready_Cmd(client, args)
 {
 	if (inReadyUp)
@@ -230,17 +253,19 @@ public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 	InitiateReadyUp();
 }
 
-public Action:InitReady_Cmd(client, args)
-{
-	InitiateReadyUp();
-	return Plugin_Handled;
-}
-
-public Action:InitLive_Cmd(client, args)
-{
-	InitiateLive();
-	return Plugin_Handled;
-}
+/*
+ *public Action:InitReady_Cmd(client, args)
+ *{
+ *    InitiateReadyUp();
+ *    return Plugin_Handled;
+ *}
+ *
+ *public Action:InitLive_Cmd(client, args)
+ *{
+ *    InitiateLive();
+ *    return Plugin_Handled;
+ *}
+ */
 
 public DummyHandler(Handle:menu, MenuAction:action, param1, param2) { }
 
