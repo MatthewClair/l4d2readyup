@@ -1,4 +1,7 @@
+#pragma semicolon 1
+
 #include <sourcemod>
+#include <colors>
 
 #define EXTRA_KEY_DELAY 1.0
 
@@ -25,8 +28,7 @@ new String:teamString[L4D2Team][] =
 	"Spectator",
 	"Survivor",
 	"Infected"
-}
-
+};
 
 new Handle:menuPanel;
 new Handle:readyCountdownTimer;
@@ -49,6 +51,7 @@ public OnPluginStart()
 
 	AddCommandListener(Say_Callback, "say");
 	AddCommandListener(TeamSay_Callback, "say_team");
+	AddCommandListener(Unpause_Callback, "unpause");
 
 	sv_pausable = FindConVar("sv_pausable");
 }
@@ -100,7 +103,7 @@ public Action:Unready_Cmd(client, args)
 	if (isPaused && IsPlayer(client) && !adminPause)
 	{
 		teamReady[L4D2Team:GetClientTeam(client)] = false;
-		CancelFullReady();
+		CancelFullReady(client);
 
 		UpdatePanel();
 	}
@@ -123,7 +126,6 @@ public Action:ForceUnpause_Cmd(client, args)
 		InitiateLiveCountdown();
 	}
 }
-
 
 Pause()
 {
@@ -225,13 +227,13 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	return Plugin_Continue;
 }
 
-CancelFullReady()
+CancelFullReady(client)
 {
 	if (readyCountdownTimer != INVALID_HANDLE)
 	{
 		CloseHandle(readyCountdownTimer);
 		readyCountdownTimer = INVALID_HANDLE;
-		PrintToChatAll("Countdown Cancelled!");
+		PrintToChatAll("%N cancelled the countdown!", client);
 	}
 }
 
@@ -242,7 +244,7 @@ public Action:Say_Callback(client, const String:command[], argc)
 		decl String:buffer[256];
 		GetCmdArgString(buffer, sizeof(buffer));
 		StripQuotes(buffer);
-		PrintToChatAll("\x04%N: \x01%s", client, buffer);
+		CPrintToChatAllEx(client, "{teamcolor}%N{default}: %s", client, buffer);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -255,8 +257,16 @@ public Action:TeamSay_Callback(client, const String:command[], argc)
 		decl String:buffer[256];
 		GetCmdArgString(buffer, sizeof(buffer));
 		StripQuotes(buffer);
-		Format(buffer, sizeof(buffer), "\x04(%s) %N: \x01%s", teamString[L4D2Team:GetClientTeam(client)], client, buffer);
-		PrintToTeam(L4D2Team:GetClientTeam(client), buffer);
+		PrintToTeam(client, L4D2Team:GetClientTeam(client), buffer);
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public Action:Unpause_Callback(client, const String:command[], argc)
+{
+	if (0 == client && isPaused)
+	{
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -273,12 +283,13 @@ stock IsPlayer(client)
 	return (client && (team == L4D2Team_Survivor || team == L4D2Team_Infected));
 }
 
-stock PrintToTeam(L4D2Team:team, const String:buffer[])
+stock PrintToTeam(author, L4D2Team:team, const String:buffer[])
 {
 	for (new client = 1; client <= MaxClients; client++)
 	{
 		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
 		{
+			CPrintToChatEx(client, author, "(%s) {teamcolor}%N{default}:%s", teamString[L4D2Team:GetClientTeam(client)], client, buffer);
 			PrintToChat(client, "%s", buffer);
 		}
 	}
