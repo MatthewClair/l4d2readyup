@@ -18,7 +18,7 @@ native bool:AddStringToReadyFooter(const String:footer[]);
  *
  * @return          True if the game is currently in the ready-up phase.
  */
-native bool:IsInReady()
+native bool:IsInReady();
 
 /**
  * Called when the live countdown ends and the round goes live
