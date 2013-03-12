@@ -26,7 +26,7 @@ enum L4D2Team
 
 // Plugin Cvars
 new Handle:l4d_ready_disable_spawns;
-new Handle:l4d_ready_server_cfg;
+new Handle:l4d_ready_cfg_name;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -58,7 +58,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 public OnPluginStart()
 {
 	CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.");
-	l4d_ready_server_cfg = CreateConVar("l4d_ready_server_cfg", "", "Configname to display on the ready-up panel");
+	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel");
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up");
 
 	HookEvent("round_start", RoundStart_Event);
@@ -349,7 +349,7 @@ UpdatePanel()
 	}
 
 	decl String:cfgBuf[128];
-	GetConVarString(l4d_ready_server_cfg, cfgBuf, sizeof(cfgBuf));
+	GetConVarString(l4d_ready_cfg_name, cfgBuf, sizeof(cfgBuf));
 	ReplaceString(cfgBuf, sizeof(cfgBuf), "#", "_");
 	DrawPanelText(menuPanel, cfgBuf);
 
