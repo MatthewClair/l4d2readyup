@@ -80,6 +80,7 @@ public Action:Pause_Cmd(client, args)
 {
 	if (!isPaused && IsPlayer(client))
 	{
+		PrintToChatAll("[SM] %N paused the game", client);
 		Pause();
 	}
 	return Plugin_Handled;
@@ -89,6 +90,7 @@ public Action:Unpause_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client))
 	{
+		PrintToChatAll("[SM] %N marked %s as ready", client, teamString[L4D2Team:GetClientTeam(client)]);
 		teamReady[L4D2Team:GetClientTeam(client)] = true;
 		if (CheckFullReady())
 			InitiateLiveCountdown();
@@ -102,6 +104,7 @@ public Action:Unready_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client) && !adminPause)
 	{
+		PrintToChatAll("[SM] %N marked %s as not ready", client, teamString[L4D2Team:GetClientTeam(client)]);
 		teamReady[L4D2Team:GetClientTeam(client)] = false;
 		CancelFullReady(client);
 
