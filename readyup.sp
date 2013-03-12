@@ -29,18 +29,11 @@ new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_server_cfg;
 
 // Game Cvars
-new Handle:director_no_mobs;
 new Handle:director_no_specials;
 new Handle:god;
 new Handle:sb_stop;
 new Handle:survivor_limit;
-new Handle:z_common_limit;
-new Handle:z_ghost_delay_max;
-new Handle:z_ghost_delay_min;
 new Handle:z_max_player_zombies;
-new z_common_limit_initial;
-new z_ghost_delay_max_initial;
-new z_ghost_delay_min_initial;
 
 new Handle:casterTrie;
 new Handle:liveForward;
@@ -72,14 +65,10 @@ public OnPluginStart()
 
 	casterTrie = CreateTrie();
 
-	director_no_mobs = FindConVar("director_no_mobs");
 	director_no_specials = FindConVar("director_no_specials");
 	god = FindConVar("god");
 	sb_stop = FindConVar("sb_stop");
 	survivor_limit = FindConVar("survivor_limit");
-	z_common_limit = FindConVar("z_common_limit");
-	z_ghost_delay_max = FindConVar("z_ghost_delay_max");
-	z_ghost_delay_min = FindConVar("z_ghost_delay_min");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 
 	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN);
@@ -392,11 +381,6 @@ InitiateReadyUp()
 	inLiveCountdown = false;
 	readyCountdownTimer = INVALID_HANDLE;
 
-	z_common_limit_initial = GetConVarInt(z_common_limit);
-	z_ghost_delay_max_initial = GetConVarInt(z_ghost_delay_max);
-	z_ghost_delay_min_initial = GetConVarInt(z_ghost_delay_min);
-
-	SetConVarBool(director_no_mobs, true);
 	if (GetConVarBool(l4d_ready_disable_spawns))
 	{
 		SetConVarBool(director_no_specials, true);
@@ -406,9 +390,6 @@ InitiateReadyUp()
 	SetConVarBool(god, true);
 	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, true);
-	SetConVarInt(z_common_limit, 0);
-	SetConVarInt(z_ghost_delay_max, 0);
-	SetConVarInt(z_ghost_delay_min, 0);
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
 }
@@ -418,15 +399,11 @@ InitiateLive()
 	inReadyUp = false;
 	inLiveCountdown = false;
 
-	SetConVarBool(director_no_mobs, false);
 	SetConVarBool(director_no_specials, false);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, false);
 	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, false);
-	SetConVarInt(z_common_limit, z_common_limit_initial);
-	SetConVarInt(z_ghost_delay_max, z_ghost_delay_max_initial);
-	SetConVarInt(z_ghost_delay_min, z_ghost_delay_min_initial);
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
