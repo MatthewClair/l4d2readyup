@@ -202,11 +202,17 @@ stock bool:ChangePlayerTeam(client, L4D2Team:team)
 		if (-1 == bot) /* we couldn't find a bot, how the hell do we deal with this efficiently?? */
 		{
 			ChangeClientTeam(client, _:team);
+			new flags = GetCommandFlags("respawn");
+			SetCommandFlags("respawn", flags & ~FCVAR_CHEAT);
 			FakeClientCommand(client, "respawn");
+			SetCommandFlags("respawn", flags);
 		}
 		else
 		{
+			new flags = GetCommandFlags("sb_takecontrol");
+			SetCommandFlags("sb_takecontrol", flags & ~FCVAR_CHEAT);
 			FakeClientCommand(client, "sb_takecontrol");
+			SetCommandFlags("sb_takecontrol", flags);
 		}
 	}
 	return true;
