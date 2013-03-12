@@ -19,7 +19,7 @@ This plugin now only has three console variables, with only two actually being u
 
 The logger plugin currently requires this Cvar to be set to 1 otherwise the round wont be logged so this Cvar could not be removed.  I personally believe that plugins should only be enabled or disabled through loading or unloading them.  In the old `l4dready`, disabling the plugin doesn't disable all functionality as pauses and player management still exist when the plugin is disabled.  Confusion (or bugs) such as that are easier to avoid if the plugin is stored in `plugins/optional` and loaded or unloaded when required.
 
-    l4d_ready_server_cfg "Confogl" // Configname to display on the ready-up panel
+	l4d_ready_cfg_name "Confogl" // Configname to display on the ready-up panel
 
 This Cvar configures what config name should be displayed on the ready-up panel directly below the last player listed.  This Cvar is also used by the logger plugin to report the running config.
 
@@ -41,6 +41,8 @@ The follow Cvars exist in `l4dready` but no longer exist (with a little blurb wh
 ##Commands
 The plugin supports the usual array of commands one would expect in a ready-up plugin.
 
+	sm_hide
+	sm_show
     sm_caster
     sm_forcestart
     sm_notcasting
@@ -48,7 +50,7 @@ The plugin supports the usual array of commands one would expect in a ready-up p
     sm_toggleready
     sm_unready
 
-`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truely not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can deregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.
+`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truely not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can deregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.  `sm_hide` and `sm_show` hide the ready-up display so other plugins (such as admin menus) can be seen when ready-up is running.
 
 There is also one easter-egg command that only some players are able to use (it is nothing bad, just an alternate way to ready-up with a little surprise!)
 
