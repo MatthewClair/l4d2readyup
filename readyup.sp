@@ -40,6 +40,7 @@ new Handle:liveForward;
 new Handle:menuPanel;
 new Handle:readyCountdownTimer;
 new String:readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
+new bool:hiddenPanel[MAXPLAYERS + 1];
 new bool:inLiveCountdown = false;
 new bool:inReadyUp;
 new bool:isPlayerReady[MAXPLAYERS + 1];
@@ -73,11 +74,13 @@ public OnPluginStart()
 
 	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN);
 	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN);
+	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd);
+	RegConsoleCmd("sm_hide", Hide_Cmd);
+	RegConsoleCmd("sm_show", Show_Cmd);
 	RegConsoleCmd("sm_notcasting", NotCasting_Cmd);
 	RegConsoleCmd("sm_ready", Ready_Cmd);
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
 	RegConsoleCmd("sm_unready", Unready_Cmd);
-	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd);
 
 	// Debug Commands
 	/*RegConsoleCmd("sm_initready", InitReady_Cmd);*/
@@ -104,6 +107,7 @@ public OnClientDisconnect(client)
 	{
 		casterCount--;
 	}
+	hiddenPanel[client] = false;
 }
 
 public Native_AddStringToReadyFooter(Handle:plugin, numParams)
@@ -142,6 +146,16 @@ public Action:Caster_Cmd(client, args)
 	{
 		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 	}
+}
+
+public Action:Hide_Cmd(client, args)
+{
+	hiddenPanel[client] = true;
+}
+
+public Action:Show_Cmd(client, args)
+{
+	hiddenPanel[client] = false;
 }
 
 public Action:NotCasting_Cmd(client, args)
@@ -291,7 +305,7 @@ UpdatePanel()
 	decl dummy;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && !IsFakeClient(client))
+		if(IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
 		{
 			GetClientName(client, nameBuf, sizeof(nameBuf));
 			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
@@ -360,7 +374,7 @@ UpdatePanel()
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && !IsFakeClient(client))
+		if(IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
 		{
 			SendPanelToClient(menuPanel, client, DummyHandler, 1);
 		}
