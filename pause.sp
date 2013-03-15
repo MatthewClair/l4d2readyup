@@ -34,6 +34,7 @@ new Handle:menuPanel;
 new Handle:readyCountdownTimer;
 new Handle:sv_pausable;
 new bool:adminPause;
+new bool:chatDelay[MAXPLAYERS + 1];
 new bool:isPaused;
 new bool:teamReady[L4D2Team];
 new bool:was_pressing_IN_USE[MAXPLAYERS + 1];
@@ -90,7 +91,12 @@ public Action:Unpause_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client))
 	{
-		PrintToChatAll("[SM] %N marked %s as ready", client, teamString[L4D2Team:GetClientTeam(client)]);
+		if (!chatDelay[client])
+		{
+			PrintToChatAll("[SM] %N marked %s as ready", client, teamString[L4D2Team:GetClientTeam(client)]);
+			CreateTimer(1.0, ChatDelay_Timer, client);
+			chatDelay[client] = true;
+		}
 		teamReady[L4D2Team:GetClientTeam(client)] = true;
 		if (CheckFullReady())
 			InitiateLiveCountdown();
@@ -104,13 +110,23 @@ public Action:Unready_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client) && !adminPause)
 	{
-		PrintToChatAll("[SM] %N marked %s as not ready", client, teamString[L4D2Team:GetClientTeam(client)]);
+		if (!chatDelay[client])
+		{
+			PrintToChatAll("[SM] %N marked %s as not ready", client, teamString[L4D2Team:GetClientTeam(client)]);
+			CreateTimer(1.0, ChatDelay_Timer, client);
+			chatDelay[client] = true;
+		}
 		teamReady[L4D2Team:GetClientTeam(client)] = false;
 		CancelFullReady(client);
 
 		UpdatePanel();
 	}
 	return Plugin_Handled;
+}
+
+public Action:ChatDelay_Timer(Handle:timer, any:client)
+{
+	chatDelay[client] = false;
 }
 
 public Action:ForcePause_Cmd(client, args)
