@@ -233,9 +233,8 @@ public Action:ToggleReady_Cmd(client, args)
 		{
 			CancelFullReady();
 		}
+		UpdatePanel();
 	}
-
-	UpdatePanel();
 
 	return Plugin_Handled;
 }
