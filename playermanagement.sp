@@ -1,6 +1,8 @@
 #pragma semicolon 1
 
 #include <sourcemod>
+#include <sdktools>
+#include <colors>
 
 #define GAMECONFIG_FILE "left4downtown.l4d2"
 
@@ -41,8 +43,10 @@ public OnPluginStart()
 
 public Action:Spectate_Cmd(client, args)
 {
-	pendingSwaps[client] = L4D2Team_Spectator;
-	ApplySwaps(client);
+	ChangePlayerTeam(client, L4D2Team_None);
+	ChangePlayerTeam(client, L4D2Team_Spectator);
+	ForcePlayerSuicide(client);
+	CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
 	return Plugin_Handled;
 }
 
