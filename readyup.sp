@@ -185,7 +185,6 @@ public Action:Secret_Cmd(client, args)
 			if (CheckFullReady())
 				InitiateLiveCountdown();
 
-			UpdatePanel();
 			return Plugin_Handled;
 		}
 		
@@ -200,8 +199,6 @@ public Action:Ready_Cmd(client, args)
 		isPlayerReady[client] = true;
 		if (CheckFullReady())
 			InitiateLiveCountdown();
-
-		UpdatePanel();
 	}
 
 	return Plugin_Handled;
@@ -213,8 +210,6 @@ public Action:Unready_Cmd(client, args)
 	{
 		isPlayerReady[client] = false;
 		CancelFullReady();
-		
-		UpdatePanel();
 	}
 
 	return Plugin_Handled;
@@ -233,7 +228,6 @@ public Action:ToggleReady_Cmd(client, args)
 		{
 			CancelFullReady();
 		}
-		UpdatePanel();
 	}
 
 	return Plugin_Handled;
