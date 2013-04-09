@@ -347,7 +347,7 @@ UpdatePanel()
 	if (bufLen != 0)
 	{
 		unreadyBuffer[bufLen] = '\0';
-		ReplaceString(readyBuffer, sizeof(readyBuffer), "#buy", "<- TROLL");
+		ReplaceString(unreadyBuffer, sizeof(readyBuffer), "#buy", "<- TROLL");
 		ReplaceString(unreadyBuffer, sizeof(unreadyBuffer), "#", "_");
 		DrawPanelText(menuPanel, "Unready");
 		DrawPanelText(menuPanel, unreadyBuffer);
