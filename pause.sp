@@ -34,11 +34,12 @@ new Handle:menuPanel;
 new Handle:readyCountdownTimer;
 new Handle:sv_pausable;
 new bool:adminPause;
-new bool:chatDelay[MAXPLAYERS + 1];
 new bool:isPaused;
 new bool:teamReady[L4D2Team];
 new bool:was_pressing_IN_USE[MAXPLAYERS + 1];
 new readyDelay;
+new Handle:pauseDelayCvar;
+new pauseDelay;
 
 public OnPluginStart()
 {
@@ -55,6 +56,8 @@ public OnPluginStart()
 	AddCommandListener(Unpause_Callback, "unpause");
 
 	sv_pausable = FindConVar("sv_pausable");
+
+	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses");
 }
 
 public OnClientPutInServer(client)
@@ -79,29 +82,48 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
 public Action:Pause_Cmd(client, args)
 {
-	if (!isPaused && IsPlayer(client))
+	if (pauseDelay == 0 && !isPaused && IsPlayer(client))
 	{
 		PrintToChatAll("[SM] %N paused the game", client);
-		Pause();
+		pauseDelay = GetConVarInt(pauseDelayCvar);
+		if (pauseDelay == 0)
+			Pause();
+		else
+			CreateTimer(1.0, PauseDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 	return Plugin_Handled;
+}
+
+public Action:PauseDelay_Timer(Handle:timer)
+{
+	if (pauseDelay == 0)
+	{
+		PrintToChatAll("Paused!");
+		Pause();
+		return Plugin_Stop;
+	}
+	else
+	{
+		PrintToChatAll("Game pausing in: %d", pauseDelay);
+		pauseDelay--;
+	}
+	return Plugin_Continue;
 }
 
 public Action:Unpause_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client))
 	{
-		if (!chatDelay[client])
+		new L4D2Team:clientTeam = L4D2Team:GetClientTeam(client);
+		if (!teamReady[clientTeam])
 		{
 			PrintToChatAll("[SM] %N marked %s as ready", client, teamString[L4D2Team:GetClientTeam(client)]);
-			CreateTimer(1.0, ChatDelay_Timer, client);
-			chatDelay[client] = true;
 		}
-		teamReady[L4D2Team:GetClientTeam(client)] = true;
+		teamReady[clientTeam] = true;
 		if (CheckFullReady())
+		{
 			InitiateLiveCountdown();
-
-		UpdatePanel();
+		}
 	}
 	return Plugin_Handled;
 }
@@ -110,23 +132,15 @@ public Action:Unready_Cmd(client, args)
 {
 	if (isPaused && IsPlayer(client) && !adminPause)
 	{
-		if (!chatDelay[client])
+		new L4D2Team:clientTeam = L4D2Team:GetClientTeam(client);
+		if (teamReady[clientTeam])
 		{
 			PrintToChatAll("[SM] %N marked %s as not ready", client, teamString[L4D2Team:GetClientTeam(client)]);
-			CreateTimer(1.0, ChatDelay_Timer, client);
-			chatDelay[client] = true;
 		}
-		teamReady[L4D2Team:GetClientTeam(client)] = false;
+		teamReady[clientTeam] = false;
 		CancelFullReady(client);
-
-		UpdatePanel();
 	}
 	return Plugin_Handled;
-}
-
-public Action:ChatDelay_Timer(Handle:timer, any:client)
-{
-	chatDelay[client] = false;
 }
 
 public Action:ForcePause_Cmd(client, args)
@@ -156,9 +170,7 @@ Pause()
 	isPaused = true;
 	readyCountdownTimer = INVALID_HANDLE;
 
-	UpdatePanel();
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
