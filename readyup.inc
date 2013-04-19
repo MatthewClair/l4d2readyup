@@ -21,6 +21,20 @@ native bool:AddStringToReadyFooter(const String:footer[]);
 native bool:IsInReady();
 
 /**
+ * If this in-game and fully connected client is a caster or not
+ *
+ * @return          True if this is a registered caster
+ */
+native bool:IsClientCaster(client);
+
+/**
+ * If this Steam ID is a registered caster or not
+ *
+ * @return          True if this is a registered caster
+ */
+native bool:IsIDCaster(const String:AuthID[]);
+
+/**
  * Called when the live countdown ends and the round goes live
  */
 forward OnRoundIsLive();

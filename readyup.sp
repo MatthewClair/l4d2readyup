@@ -52,6 +52,8 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
 	CreateNative("IsInReady", Native_IsInReady);
+	CreateNative("IsClientCaster", Native_IsClientCaster);
+	CreateNative("IsIDCaster", Native_IsIDCaster);
 	liveForward = CreateGlobalForward("OnRoundIsLive", ET_Event);
 	return APLRes_Success;
 }
@@ -81,6 +83,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready", Ready_Cmd);
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
 	RegConsoleCmd("sm_unready", Unready_Cmd);
+	RegServerCmd("sm_resetcasters", ResetCaster_Cmd);
 
 	// Debug Commands
 	/*RegConsoleCmd("sm_initready", InitReady_Cmd);*/
@@ -101,20 +104,15 @@ public OnMapEnd()
 
 public OnClientDisconnect(client)
 {
-	decl String:buffer[64];
-	GetClientAuthString(client, buffer, sizeof(buffer));
-	if (RemoveFromTrie(casterTrie, buffer))
-	{
-		casterCount--;
-	}
 	hiddenPanel[client] = false;
+	isPlayerReady[client] = false;
 }
 
 public Native_AddStringToReadyFooter(Handle:plugin, numParams)
 {
 	decl String:footer[MAX_FOOTER_LEN];
 	GetNativeString(1, footer, sizeof(footer));
-	if (footerCounter < MAX_FOOTER_LEN)
+	if (footerCounter < MAX_FOOTERS)
 	{
 		if (strlen(footer) < MAX_FOOTER_LEN)
 		{
@@ -129,6 +127,31 @@ public Native_AddStringToReadyFooter(Handle:plugin, numParams)
 public Native_IsInReady(Handle:plugin, numParams)
 {
 	return _:inReadyUp;
+}
+
+public Native_IsClientCaster(Handle:plugin, numParams)
+{
+	new client = GetNativeCell(1);
+	return _:IsClientCaster(client);
+}
+
+public Native_IsIDCaster(Handle:plugin, numParams)
+{
+	decl String:buffer[64];
+	GetNativeString(1, buffer, sizeof(buffer));
+	return _:IsIDCaster(buffer);
+}
+
+stock bool:IsClientCaster(client)
+{
+	decl String:buffer[64];
+	return GetClientAuthString(client, buffer, sizeof(buffer) && IsIDCaster(buffer));
+}
+
+stock bool:IsIDCaster(const String:AuthID[])
+{
+	decl dummy;
+	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
 public Action:Caster_Cmd(client, args)
@@ -146,6 +169,11 @@ public Action:Caster_Cmd(client, args)
 	{
 		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 	}
+}
+
+public Action:ResetCaster_Cmd(args)
+{
+	ClearTrie(casterTrie);
 }
 
 public Action:Hide_Cmd(client, args)
@@ -433,17 +461,12 @@ InitiateLive()
 
 bool:CheckFullReady()
 {
-	decl String:authBuffer[64];
-	decl bool:caster;
-	decl dummy;
 	new readyCount = 0;
 	for (new client = 1; client <= MaxClients; client++)
 	{
 		if (IsClientInGame(client))
 		{
-			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
-			caster = GetTrieValue(casterTrie, authBuffer, dummy);
-			if((IsPlayer(client) || caster) && isPlayerReady[client])
+			if((IsPlayer(client) || IsClientCaster(client)) && isPlayerReady[client])
 			{
 				readyCount++;
 			}
