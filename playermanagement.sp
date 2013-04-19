@@ -5,7 +5,7 @@
 #include <colors>
 
 #define GAMECONFIG_FILE "left4downtown.l4d2"
-#define ZC_TANK
+#define ZC_TANK 8
 
 enum L4D2Team
 {
@@ -45,7 +45,7 @@ public OnPluginStart()
 public Action:Spectate_Cmd(client, args)
 {
 	CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
-	if (L4D2Team:GetClientTeam(client) == L4D2Team_Infected && GetZombieClass != ZC_TANK)
+	if (L4D2Team:GetClientTeam(client) == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
 	{
 		ForcePlayerSuicide(client);
 	}
@@ -177,10 +177,10 @@ stock ApplySwaps(sender)
 		if(IsClientInGame(client))
 		{
 			clientTeam = L4D2Team:GetClientTeam(client);
-			if (clientTeam != pendingSwap[client] && pendingSwaps[client] != L4D2Team_None)
+			if (clientTeam != pendingSwaps[client] && pendingSwaps[client] != L4D2Team_None)
 			{
 				if (clientTeam == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
-					ForcePlayerSuicide(client)
+					ForcePlayerSuicide(client);
 				ChangePlayerTeam(client, L4D2Team_Spectator);
 			}
 		}
