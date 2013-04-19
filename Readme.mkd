@@ -1,5 +1,5 @@
 #Unixing Ready-Up
-One main point of the Unix philosophy is "do one thing and do it well".  The current ready-up (l4dready) does three things and none of them well.  It has a ton of old features that don't work and are never used, it has bugs and lots of room for improvement.
+One main point of the Unix philosophy is "do one thing and do it well".  The current ready-up (`l4dready`) does three things and none of them well.  It has a ton of old features that don't work and are never used, it has bugs and lots of room for improvement.
 
 This is my attempt at Unixing ready-up.  The functionality of ready-up can primarily be sorted into three different categories:
 
@@ -19,7 +19,7 @@ This plugin now only has three console variables, with only two actually being u
 
 The logger plugin currently requires this Cvar to be set to 1 otherwise the round wont be logged so this Cvar could not be removed.  I personally believe that plugins should only be enabled or disabled through loading or unloading them.  In the old `l4dready`, disabling the plugin doesn't disable all functionality as pauses and player management still exist when the plugin is disabled.  Confusion (or bugs) such as that are easier to avoid if the plugin is stored in `plugins/optional` and loaded or unloaded when required.
 
-	l4d_ready_cfg_name "Confogl" // Configname to display on the ready-up panel
+    l4d_ready_cfg_name "Confogl" // Configname to display on the ready-up panel
 
 This Cvar configures what config name should be displayed on the ready-up panel directly below the last player listed.  This Cvar is also used by the logger plugin to report the running config.
 
@@ -41,29 +41,35 @@ The follow Cvars exist in `l4dready` but no longer exist (with a little blurb wh
 ##Commands
 The plugin supports the usual array of commands one would expect in a ready-up plugin.
 
-	sm_hide
-	sm_show
+    sm_hide
+    sm_show
     sm_caster
     sm_forcestart
     sm_notcasting
     sm_ready
     sm_toggleready
     sm_unready
+    sm_resetcasters
 
-`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truely not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can deregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.  `sm_hide` and `sm_show` hide the ready-up display so other plugins (such as admin menus) can be seen when ready-up is running.
+`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truely not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can deregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.  `sm_hide` and `sm_show` hide the ready-up display so other plugins (such as admin menus) can be seen when ready-up is running.  `sm_resetcasters` is a server command that must be included in `confogl_off.cfg` (or the equivalent location for non-Confogl configs).
 
 There is also one easter-egg command that only some players are able to use (it is nothing bad, just an alternate way to ready-up with a little surprise!)
 
 ##Extending Ready-up
-This plugins includes two natives and one forward for plugin developers.
+This plugins includes new natives and forwards for plugin developers.
 
     native bool:AddStringToReadyFooter(const String:footer[]);
 
 This allows other plugins to add text to the ready-up panel.  The text must be shorter than 65 characters including the null terminating byte.  Ready-up allows up to 10 extra strings to be added to the panel.  These strings are reset as soon as the round goes live.  This native is always available but logically should only be called after a `round_start` event and before ready-up goes live.  Returns true if the string is added or false if it is not (not enough room or the string is too long).  This allows other things to be added to the panel such as map distance, previous round score, server name, etc without having to modify the ready-up plugin.
 
-    native bool:IsInReady()
+    native bool:IsInReady();
 
 This simply returns if the round is current in ready-up.  The live countdown is also included as the countdown may be cancelled.
+
+    native bool:IsClientCaster(client);
+    native bool:IsIDCaster(const String:AuthID[]);
+
+These allow other plugins to check if a specific client or Steam ID is a registered caster.
 
     forward OnRoundIsLive();
 
@@ -72,7 +78,9 @@ This is called when a round goes live and all other live-initiating code has bee
 #Pause
 This plugin deals only with pauses.  It also has a mini ready-up to prevent an unpause when one team is not ready.  Teams have no limit to the number of pauses as the number is generally configured high enough to never have issues.  Every player can control their team's ready status so make sure your team is ready before you actually mark your team as ready.  The plugin announces when players are fully connected as to be expected.  Chat during pause is now coloured as it normally would be during the game.
 
-Pause now includes no configuration Cvars.  The old Cvars were generally set to limits so high they could never be reached so they are no longer supported.
+Pause now includes a single configuration Cvar.  The old Cvars were generally set to limits so high they could never be reached so they are no longer supported.  The one cvar that is included allows a delay to be added between a player running `sm_pause` and the game actually pausing.  This can be used to prevent "tactical pauses".  The Cvar defaults to 0 which means no delay, or the usual instant pause.
+
+    sm_pausedelay 0
 
 ##Incapped Player Pickups & Pauses
 Unlike `l4dready` this plugin does not block pick-up during pauses.  It allows pauses because it doesn't break pick-ups.  The only thing to remember is you must be holding `+use` (default `E`) before the round goes live again.  There is five second countdown so this should be a non-issue.
