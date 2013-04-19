@@ -5,6 +5,7 @@
 #include <colors>
 
 #define GAMECONFIG_FILE "left4downtown.l4d2"
+#define ZC_TANK
 
 enum L4D2Team
 {
@@ -43,11 +44,19 @@ public OnPluginStart()
 
 public Action:Spectate_Cmd(client, args)
 {
-	ChangePlayerTeam(client, L4D2Team_None);
-	ChangePlayerTeam(client, L4D2Team_Spectator);
-	ForcePlayerSuicide(client);
 	CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
+	if (L4D2Team:GetClientTeam(client) == L4D2Team_Infected && GetZombieClass != ZC_TANK)
+	{
+		ForcePlayerSuicide(client);
+	}
+	ChangePlayerTeam(client, L4D2Team_None);
+	CreateTimer(0.01, RespecDelay_Timer, client);
 	return Plugin_Handled;
+}
+
+public Action:RespecDelay_Timer(Handle:timer, any:client)
+{
+	ChangePlayerTeam(client, L4D2Team_Spectator);
 }
 
 public Action:SwapTeams_Cmd(client, args)
@@ -67,7 +76,7 @@ public Action:Swap_Cmd(client, args)
 {
 	if (args < 1)
 	{
-		ReplyToCommand(client, "SYNTAX ERROR");
+		ReplyToCommand(client, "[SM] Usage: sm_swap <player1> <player2> ... <playerN>");
 		return Plugin_Handled;
 	}
 
@@ -111,8 +120,7 @@ public Action:SwapTo_Cmd(client, args)
 {
 	if (args < 2)
 	{
-		ReplyToCommand(client, "SYNTAX ERROR");
-		/*ReplyToCommand(client, "[SM] Usage: sm_swapto <player1> [player2] ... [playerN] <teamnum> - swap all listed players to team <teamnum> (1,2,or 3)");*/
+		ReplyToCommand(client, "[SM] Usage: sm_swapto <teamnum> <player1> <player2> ... <playerN>\n%d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
 		return Plugin_Handled;
 	}
 
@@ -122,8 +130,7 @@ public Action:SwapTo_Cmd(client, args)
 	new L4D2Team:team = L4D2Team:StringToInt(argbuf);
 	if (team < L4D2Team_Spectator || team > L4D2Team_Infected)
 	{
-		ReplyToCommand(client, "SYNTAX ERROR");
-		/*ReplyToCommand(client, "[SM] Usage: sm_swapto <player1> [player2] ... [playerN] <teamnum> - swap all listed players to team <teamnum> (1,2,or 3)");*/
+		ReplyToCommand(client, "[SM] Valid teams: %d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
 		return Plugin_Handled;
 	}
 
@@ -163,12 +170,19 @@ public Action:SwapTo_Cmd(client, args)
 
 stock ApplySwaps(sender)
 {
+	decl L4D2Team:clientTeam;
 	/* Swap everyone to spec first so we know the correct number of slots on the teams */
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && pendingSwaps[client] != L4D2Team_None)
+		if(IsClientInGame(client))
 		{
-			ChangePlayerTeam(client, L4D2Team_Spectator);
+			clientTeam = L4D2Team:GetClientTeam(client);
+			if (clientTeam != pendingSwap[client] && pendingSwaps[client] != L4D2Team_None)
+			{
+				if (clientTeam == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
+					ForcePlayerSuicide(client)
+				ChangePlayerTeam(client, L4D2Team_Spectator);
+			}
 		}
 	}
 
@@ -268,3 +282,5 @@ stock IsPlayer(client)
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
+
+stock GetZombieClass(client) return GetEntProp(client, Prop_Send, "m_zombieClass");
