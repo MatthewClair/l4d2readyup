@@ -49,7 +49,7 @@ public Action:Spectate_Cmd(client, args)
 	{
 		ForcePlayerSuicide(client);
 	}
-	ChangePlayerTeam(client, L4D2Team_None);
+	ChangePlayerTeam(client, L4D2Team_Infected);
 	CreateTimer(0.01, RespecDelay_Timer, client);
 	return Plugin_Handled;
 }
