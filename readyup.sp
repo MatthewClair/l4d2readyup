@@ -144,7 +144,7 @@ public Native_IsIDCaster(Handle:plugin, numParams)
 stock bool:IsClientCaster(client)
 {
 	decl String:buffer[64];
-	return GetClientAuthString(client, buffer, sizeof(buffer) && IsIDCaster(buffer));
+	return GetClientAuthString(client, buffer, sizeof(buffer)) && IsIDCaster(buffer);
 }
 
 stock bool:IsIDCaster(const String:AuthID[])
