@@ -89,6 +89,12 @@ public OnPluginStart()
 	/*RegConsoleCmd("sm_initlive", InitLive_Cmd);*/
 }
 
+public OnPluginEnd()
+{
+	if (inReadyUp)
+		InitiateLive();
+}
+
 public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
