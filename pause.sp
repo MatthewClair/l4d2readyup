@@ -65,7 +65,8 @@ public OnClientPutInServer(client)
 {
 	if (isPaused)
 	{
-		PrintToChatAll("\x01[SM] \x03%N \x01is now fully loaded in game", client);
+		if (!IsFakeClient(client))
+			PrintToChatAll("\x01[SM] \x03%N \x01is now fully loaded in game", client);
 	}
 }
 
@@ -276,7 +277,11 @@ public Action:Say_Callback(client, const String:command[], argc)
 		decl String:buffer[256];
 		GetCmdArgString(buffer, sizeof(buffer));
 		StripQuotes(buffer);
-		CPrintToChatAllEx(client, "{teamcolor}%N{default}: %s", client, buffer);
+		if (IsChatTrigger() && buffer[0] == '/' || buffer[0] == '@')  // Hidden command or chat trigger
+		{
+			return Plugin_Continue;
+		}
+		CPrintToChatAllEx(client, "{teamcolor}%N{default} : %s", client, buffer);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
