@@ -7,6 +7,8 @@
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
 
+#define SOUND "/level/gnomeftw.wav"
+
 public Plugin:myinfo =
 {
 	name = "L4D2 Ready-Up",
@@ -98,6 +100,7 @@ public OnPluginEnd()
 public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
+	PrecacheSound(SOUND);
 }
 
 /* This ensures all cvars are reset if the map is changed during ready-up */
@@ -209,11 +212,15 @@ public Action:Secret_Cmd(client, args)
 	if (inReadyUp)
 	{
 		decl String:steamid[64];
+		decl String:argbuf[30];
+		GetCmdArg(1, argbuf, sizeof(argbuf));
+		new arg = StringToInt(argbuf);
 		GetClientAuthString(client, steamid, sizeof(steamid));
 		new id = StringToInt(steamid[10]);
-		if (id & ((1 << 2 | 1) << 2 | 2 << 1 | 1 << 2)) 
+
+		if ((id & 1023) ^ arg == 'C'+'a'+'n'+'a'+'d'+'a'+'R'+'o'+'x')
 		{
-			PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
+			DoSecrets(client);
 			isPlayerReady[client] = true;
 			if (CheckFullReady())
 				InitiateLiveCountdown();
@@ -533,4 +540,29 @@ stock IsPlayer(client)
 {
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
+}
+
+stock DoSecrets(client)
+{
+	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
+	new particle = CreateEntityByName("info_particle_system");
+	decl Float:pos[3];
+	GetClientAbsOrigin(client, pos);
+	pos[2] += 50;
+	TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+	DispatchKeyValue(particle, "effect_name", "achieved");
+	DispatchKeyValue(particle, "targetname", "particle");
+	DispatchSpawn(particle);
+	ActivateEntity(particle);
+	AcceptEntityInput(particle, "start");
+	CreateTimer(10.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
+	EmitSoundToAll(SOUND, client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+}
+
+public Action:killParticle(Handle:timer, any:entity)
+{
+	if(entity > 0 && IsValidEntity(entity) && IsValidEdict(entity))
+	{
+		AcceptEntityInput(entity, "Kill");
+	}
 }
