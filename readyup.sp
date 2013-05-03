@@ -545,18 +545,21 @@ stock IsPlayer(client)
 stock DoSecrets(client)
 {
 	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
-	new particle = CreateEntityByName("info_particle_system");
-	decl Float:pos[3];
-	GetClientAbsOrigin(client, pos);
-	pos[2] += 50;
-	TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
-	DispatchKeyValue(particle, "effect_name", "achieved");
-	DispatchKeyValue(particle, "targetname", "particle");
-	DispatchSpawn(particle);
-	ActivateEntity(particle);
-	AcceptEntityInput(particle, "start");
-	CreateTimer(10.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
-	EmitSoundToAll(SOUND, client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+	if (GetClientTeam(client) == 2)
+	{
+		new particle = CreateEntityByName("info_particle_system");
+		decl Float:pos[3];
+		GetClientAbsOrigin(client, pos);
+		pos[2] += 50;
+		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+		DispatchKeyValue(particle, "effect_name", "achieved");
+		DispatchKeyValue(particle, "targetname", "particle");
+		DispatchSpawn(particle);
+		ActivateEntity(particle);
+		AcceptEntityInput(particle, "start");
+		CreateTimer(10.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
+		EmitSoundToAll(SOUND, client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+	}
 }
 
 public Action:killParticle(Handle:timer, any:entity)
