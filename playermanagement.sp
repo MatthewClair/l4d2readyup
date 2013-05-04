@@ -12,7 +12,7 @@ public Plugin:myinfo =
 	name = "Player Management Plugin",
 	author = "CanadaRox",
 	description = "Player management!  Swap players/teams and spectate!",
-	version = "2",
+	version = "3",
 	url = ""
 };
 
@@ -59,7 +59,7 @@ public Action:Spectate_Cmd(client, args)
 		ForcePlayerSuicide(client);
 	}
 	ChangePlayerTeam(client, L4D2Team_Infected);
-	CreateTimer(0.01, RespecDelay_Timer, client);
+	CreateTimer(0.1, RespecDelay_Timer, client);
 	return Plugin_Handled;
 }
 
