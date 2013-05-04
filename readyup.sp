@@ -48,6 +48,7 @@ new bool:inReadyUp;
 new bool:isPlayerReady[MAXPLAYERS + 1];
 new footerCounter = 0;
 new readyDelay;
+new bool:blockSecretSpam[MAXPLAYERS + 1];
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -102,6 +103,10 @@ public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
+	for (new client = 1; client <= MAXPLAYERS; client++)
+	{
+		blockSecretSpam[client] = false;
+	}
 }
 
 /* This ensures all cvars are reset if the map is changed during ready-up */
@@ -546,7 +551,7 @@ stock IsPlayer(client)
 stock DoSecrets(client)
 {
 	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
-	if (GetClientTeam(client) == 2)
+	if (GetClientTeam(client) == 2 && !blockSecretSpam[client])
 	{
 		new particle = CreateEntityByName("info_particle_system");
 		decl Float:pos[3];
@@ -560,7 +565,14 @@ stock DoSecrets(client)
 		AcceptEntityInput(particle, "start");
 		CreateTimer(10.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
 		EmitSoundToAll(SOUND, client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		CreateTimer(2.0, SecretSpamDelay, client);
+		blockSecretSpam[client] = true;
 	}
+}
+
+public Action:SecretSpamDelay(Handle:timer, any:client)
+{
+	blockSecretSpam[client] = false;
 }
 
 public Action:killParticle(Handle:timer, any:entity)
