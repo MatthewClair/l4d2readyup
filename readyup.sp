@@ -56,6 +56,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	CreateNative("IsClientCaster", Native_IsClientCaster);
 	CreateNative("IsIDCaster", Native_IsIDCaster);
 	liveForward = CreateGlobalForward("OnRoundIsLive", ET_Event);
+	RegPluginLibrary("readyup");
 	return APLRes_Success;
 }
 

@@ -2,7 +2,8 @@
 
 #include <sourcemod>
 #include <colors>
-#include <readyup>
+#undef REQUIRE_PLUGIN
+#include "readyup"
 
 #define EXTRA_KEY_DELAY 1.0
 
@@ -41,6 +42,13 @@ new bool:was_pressing_IN_USE[MAXPLAYERS + 1];
 new readyDelay;
 new Handle:pauseDelayCvar;
 new pauseDelay;
+new bool:readyUpIsAvailable;
+
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	MarkNativeAsOptional("IsInReady");
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {
@@ -59,6 +67,22 @@ public OnPluginStart()
 	sv_pausable = FindConVar("sv_pausable");
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses");
+
+}
+
+public OnAllPluginsLoaded()
+{
+	readyUpIsAvailable = LibraryExists("readyup");
+}
+
+public OnLibraryRemoved(const String:name[])
+{
+	if (StrEqual(name, "readyup")) readyUpIsAvailable = false;
+}
+
+public OnLibraryAdded(const String:name[])
+{
+	if (StrEqual(name, "readyup")) readyUpIsAvailable = true;
 }
 
 public OnClientPutInServer(client)
@@ -84,7 +108,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
 public Action:Pause_Cmd(client, args)
 {
-	if (!IsInReady() && pauseDelay == 0 && !isPaused && IsPlayer(client))
+	if ((!readyUpIsAvailable || !IsInReady()) && pauseDelay == 0 && !isPaused && IsPlayer(client))
 	{
 		PrintToChatAll("[SM] %N paused the game", client);
 		pauseDelay = GetConVarInt(pauseDelayCvar);

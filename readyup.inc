@@ -39,4 +39,23 @@ native bool:IsIDCaster(const String:AuthID[]);
  */
 forward OnRoundIsLive();
 
+public SharedPlugin:__pl_readyup =
+{
+        name = "readyup",
+        file = "readyup.smx",
+#if defined REQUIRE_PLUGIN
+        required = 1,
+#else
+        required = 0,
+#endif
+};
+
+public __pl_readyup_SetNTVOptional()
+{
+        MarkNativeAsOptional("AddStringToReadyFooter");
+        MarkNativeAsOptional("IsInReady");
+        MarkNativeAsOptional("IsClientCaster");
+        MarkNativeAsOptional("IsIDCaster");
+}
+
 // vim: ft=sourcepawn et sw=8
