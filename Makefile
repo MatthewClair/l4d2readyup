@@ -1,8 +1,11 @@
-readyup.smx: readyup.sp
-	spcomp -o $@ $<
+CC=spcomp
+OBJECTS=readyup.smx pause.smx playermanagement.smx readyup_test.smx
 
-pause.smx: pause.sp
-	spcomp -o $@ $<
+all: $(OBJECTS)
 
-playermanagement.smx: playermanagement.sp
-	spcomp -o $@ $<
+%.smx: %.sp
+	$(CC) -o=$@ $<
+
+.PHONY : clean
+clean:
+	-rm $(OBJECTS)
