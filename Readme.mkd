@@ -33,7 +33,7 @@ The follow Cvars exist in `l4dready` but no longer exist (with a little blurb wh
     l4d_ready_competition 0 // This function has been long superceded by Confogl
     l4d_ready_both_halves 0 // Having ready for only one half gives one SI team less chance to set up and isn't balanced
     l4d_ready_minimum_players 0 // The new readyup plugin automatically detects the minimum number of players based on survivor limit, infected limit and number of registed casters
-    l4d_ready_search_key_disable 0 // Doesn't run (partially runs, see above about enabling l4dready) if the search key is not set.  Not untuitive or entirely useful.
+    l4d_ready_search_key_disable 0 // Doesn't run (partially runs, see above about enabling l4dready) if the search key is not set.  Not intuitive or entirely useful.
     pause cvars // See Pause
     l4d_ready_connect_enabled 1 // Not a function of a ready-up plugin
     l4d_block_spectator_globalchat 0 // Unintuitive function that shouldn't be part of ready-up
