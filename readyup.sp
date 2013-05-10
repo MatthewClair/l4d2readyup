@@ -91,6 +91,8 @@ public OnPluginStart()
 	// Debug Commands
 	/*RegConsoleCmd("sm_initready", InitReady_Cmd);*/
 	/*RegConsoleCmd("sm_initlive", InitLive_Cmd);*/
+
+	LoadTranslations("common.phrases");
 }
 
 public OnPluginEnd()
