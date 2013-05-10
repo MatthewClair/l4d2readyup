@@ -189,6 +189,7 @@ public Action:Caster_Cmd(client, args)
 	{
 		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 	}
+	return Plugin_Handled;
 }
 
 public Action:ResetCaster_Cmd(args)
