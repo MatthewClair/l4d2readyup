@@ -192,16 +192,19 @@ public Action:Caster_Cmd(client, args)
 public Action:ResetCaster_Cmd(args)
 {
 	ClearTrie(casterTrie);
+	return Plugin_Handled;
 }
 
 public Action:Hide_Cmd(client, args)
 {
 	hiddenPanel[client] = true;
+	return Plugin_Handled;
 }
 
 public Action:Show_Cmd(client, args)
 {
 	hiddenPanel[client] = false;
+	return Plugin_Handled;
 }
 
 public Action:NotCasting_Cmd(client, args)
@@ -209,6 +212,7 @@ public Action:NotCasting_Cmd(client, args)
 	decl String:buffer[64];
 	GetClientAuthString(client, buffer, sizeof(buffer));
 	RemoveFromTrie(casterTrie, buffer);
+	return Plugin_Handled;
 }
 
 public Action:ForceStart_Cmd(client, args)
