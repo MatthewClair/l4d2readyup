@@ -183,11 +183,11 @@ public Action:Caster_Cmd(client, args)
 	if (target > 0 && GetClientAuthString(target, buffer, sizeof(buffer)))
 	{
 		SetTrieValue(casterTrie, buffer, 1);
-		PrintToChat(client, "Registered %N as a caster", target);
+		ReplyToCommand(client, "Registered %N as a caster", target);
 	}
 	else
 	{
-		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+		ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 	}
 	return Plugin_Handled;
 }
