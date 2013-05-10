@@ -174,19 +174,15 @@ public Action:Caster_Cmd(client, args)
 	GetCmdArg(1, buffer, sizeof(buffer));
 
 	new target = FindTarget(client, buffer, true, false);
-	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
+	if (target > 0 && GetClientAuthString(target, buffer, sizeof(buffer)))
 	{
-		if (GetClientAuthString(target, buffer, sizeof(buffer)))
-		{
-			SetTrieValue(casterTrie, buffer, 1);
-			PrintToChat(client, "Registered %N as a caster", target);
-		}
-		else
-		{
-			PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
-		}
+		SetTrieValue(casterTrie, buffer, 1);
+		PrintToChat(client, "Registered %N as a caster", target);
 	}
-	return Plugin_Handled;
+	else
+	{
+		PrintToChat(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+	}
 }
 
 public Action:ResetCaster_Cmd(args)
