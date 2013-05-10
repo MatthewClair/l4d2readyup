@@ -170,6 +170,12 @@ stock bool:IsIDCaster(const String:AuthID[])
 
 public Action:Caster_Cmd(client, args)
 {
+	if(args < 1)
+	{
+		PrintToChat(client, "[SM] Usage: sm_caster <player>");
+		return Plugin_Handled;
+	}
+	
 	decl String:buffer[64];
 	GetCmdArg(1, buffer, sizeof(buffer));
 
