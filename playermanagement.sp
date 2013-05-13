@@ -88,7 +88,7 @@ public Action:RespecDelay_Timer(Handle:timer, any:client)
 
 public Action:Vote_Listener(client, const String:command[], argc)
 {
-	return blockedVotes[client] ? Plugin_Handled : Plugin_Continue;
+	return blockVotes[client] ? Plugin_Handled : Plugin_Continue;
 }
 
 public Action:SwapTeams_Cmd(client, args)
