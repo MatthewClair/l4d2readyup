@@ -218,9 +218,47 @@ public Action:Show_Cmd(client, args)
 public Action:NotCasting_Cmd(client, args)
 {
 	decl String:buffer[64];
-	GetClientAuthString(client, buffer, sizeof(buffer));
-	RemoveFromTrie(casterTrie, buffer);
-	return Plugin_Handled;
+	
+	if(args < 1) // If no target is specified
+	{
+		GetClientAuthString(client, buffer, sizeof(buffer));
+		RemoveFromTrie(casterTrie, buffer);
+		return Plugin_Handled;
+	}
+	else // If a target is specified
+	{
+		new AdminId:id;
+		id = GetUserAdmin(client);
+		new bool:hasFlag = false;
+		
+		if(id != INVALID_ADMIN_ID)
+		{
+			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
+		}
+		
+		if(!hasFlag) 
+		{
+			ReplyToCommand(client, "Only admins can remove other casters. Use sm_notcasting without arguments if you wish to remove yourself.");
+			return Plugin_Handled;
+		}
+		
+		GetCmdArg(1, buffer, sizeof(buffer));
+		
+		new target = FindTarget(client, buffer, true, false);
+		if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
+		{
+			if (GetClientAuthString(target, buffer, sizeof(buffer)))
+			{
+				RemoveFromTrie(casterTrie, buffer);
+				ReplyToCommand(client, "%N is no longer a caster", target);
+			}
+			else
+			{
+				ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+			}
+		}
+		return Plugin_Handled;
+	}
 }
 
 public Action:ForceStart_Cmd(client, args)
