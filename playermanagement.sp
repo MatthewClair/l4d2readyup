@@ -34,7 +34,8 @@ new const L4D2Team:oppositeTeamMap[] =
 new Handle:survivor_limit;
 new Handle:z_max_player_zombies;
 
-new L4D2Team:pendingSwaps[MAXPLAYERS];
+new L4D2Team:pendingSwaps[MAXPLAYERS+1];
+new bool:blockVotes[MAXPLAYERS+1];
 
 public OnPluginStart()
 {
@@ -47,6 +48,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_spec", Spectate_Cmd);
 	RegConsoleCmd("sm_s", Spectate_Cmd);
 
+	AddCommandListener(Vote_Listener, "vote");
+	AddCommandListener(Vote_Listener, "callvote");
+
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 }
@@ -54,18 +58,37 @@ public OnPluginStart()
 public Action:Spectate_Cmd(client, args)
 {
 	CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
-	if (L4D2Team:GetClientTeam(client) == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
+	new L4D2Team:team = L4D2Team:GetClientTeam(client);
+	if (team == L4D2Team_Survivor)
 	{
-		ForcePlayerSuicide(client);
+		ChangeClientTeamEx(client, L4D2Team_Spectator);
 	}
-	ChangePlayerTeam(client, L4D2Team_Infected);
-	CreateTimer(0.1, RespecDelay_Timer, client);
+	else if (team == L4D2Team_Infected)
+	{
+		if (GetZombieClass(client) != ZC_TANK)
+		{
+			ForcePlayerSuicide(client);
+		}
+		ChangeClientTeamEx(client, L4D2Team_Spectator);
+	}
+	else
+	{
+		blockVotes[client] = true;
+		ChangeClientTeamEx(client, L4D2Team_Infected, true);
+		CreateTimer(0.1, RespecDelay_Timer, client);
+	}
 	return Plugin_Handled;
 }
 
 public Action:RespecDelay_Timer(Handle:timer, any:client)
 {
-	ChangePlayerTeam(client, L4D2Team_Spectator);
+	ChangeClientTeamEx(client, L4D2Team_Spectator);
+	blockVotes[client] = false;
+}
+
+public Action:Vote_Listener(client, const String:command[], argc)
+{
+	return blockedVotes[client] ? Plugin_Handled : Plugin_Continue;
 }
 
 public Action:SwapTeams_Cmd(client, args)
@@ -190,7 +213,7 @@ stock ApplySwaps(sender)
 			{
 				if (clientTeam == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
 					ForcePlayerSuicide(client);
-				ChangePlayerTeam(client, L4D2Team_Spectator);
+				ChangeClientTeamEx(client, L4D2Team_Spectator);
 			}
 		}
 	}
@@ -200,7 +223,7 @@ stock ApplySwaps(sender)
 	{
 		if(IsClientInGame(client) && pendingSwaps[client] != L4D2Team_None)
 		{
-			if (!ChangePlayerTeam(client, pendingSwaps[client]))
+			if (!ChangeClientTeamEx(client, pendingSwaps[client]))
 				PrintToChat(sender, "%N could not be switched because the target team was full.", client);
 			pendingSwaps[client] = L4D2Team_None;
 
@@ -208,17 +231,17 @@ stock ApplySwaps(sender)
 	}
 
 	/* Just in case MaxClients ever changes */
-	for (new i = MaxClients+1; i < MAXPLAYERS; i++)
+	for (new i = MaxClients+1; i <= MAXPLAYERS; i++)
 	{
 		pendingSwaps[i] = L4D2Team_None;
 	}
 }
 
-stock bool:ChangePlayerTeam(client, L4D2Team:team)
+stock bool:ChangeClientTeamEx(client, L4D2Team:team, bool:force = true)
 {
 	if (L4D2Team:GetClientTeam(client) == team)
 		return true;
-	else if (GetTeamHumanCount(team) == GetTeamMaxHumans(team))
+	else if (!force && GetTeamHumanCount(team) == GetTeamMaxHumans(team))
 		return false;
 
 	if (team != L4D2Team_Survivor)
@@ -270,12 +293,7 @@ stock GetTeamMaxHumans(L4D2Team:team)
 	{
 		return GetConVarInt(z_max_player_zombies);
 	}
-	else if (team == L4D2Team_Spectator)
-	{
-		return MaxClients;
-	}
-	
-	return -1;
+	return MaxClients;
 }
 
 /* return -1 if no bot found, clientid otherwise */
