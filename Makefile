@@ -1,5 +1,5 @@
 CC=spcomp
-OBJECTS=readyup.smx pause.smx playermanagement.smx readyup_test.smx
+OBJECTS=readyup.smx pause.smx playermanagement.smx readyup_test.smx blocktrolls.smx
 
 all: $(OBJECTS)
 
