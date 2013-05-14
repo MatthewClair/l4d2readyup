@@ -527,6 +527,7 @@ InitiateLive()
 	{
 		readyFooter[i] = "";
 	}
+	footerCounter = 0;
 	Call_StartForward(liveForward);
 	Call_Finish();
 }

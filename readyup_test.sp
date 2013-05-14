@@ -30,7 +30,7 @@ public Action:IsClientCaster_Cmd(client, args)
 	PrintToChat(client, "native bool:IsBufferCaster(%s) = %s", buffer, IsIDCaster(buffer) ? "true" : "false");
 }
 
-public RoundLive()
+public OnRoundIsLive()
 {
 	PrintToChatAll("foward OnRoundIsLive()");
 }
