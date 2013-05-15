@@ -399,7 +399,7 @@ UpdatePanel()
 	decl dummy;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
+		if(IsClientInGame(client) && !IsFakeClient(client))
 		{
 			GetClientName(client, nameBuf, sizeof(nameBuf));
 			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
