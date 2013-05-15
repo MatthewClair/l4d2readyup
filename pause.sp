@@ -171,7 +171,7 @@ public Action:Unready_Cmd(client, args)
 
 public Action:ForcePause_Cmd(client, args)
 {
-	if (isPaused)
+	if (!isPaused)
 	{
 		adminPause = true;
 		Pause();
