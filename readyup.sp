@@ -393,7 +393,7 @@ UpdatePanel()
 
 	menuPanel = CreatePanel();
 
-	decl String:nameBuf[MAX_NAME_LENGTH+8];
+	decl String:nameBuf[MAX_NAME_LENGTH*2];
 	decl String:authBuffer[64];
 	decl bool:caster;
 	decl dummy;
