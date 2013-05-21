@@ -29,6 +29,7 @@ enum L4D2Team
 // Plugin Cvars
 new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_cfg_name;
+new Handle:l4d_ready_survivor_freeze;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -50,6 +51,9 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
+new bool:hasSafeTele[MAXPLAYERS+1];
+new Float:safeTele[MAXPLAYERS+1][3];
+
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
@@ -66,6 +70,8 @@ public OnPluginStart()
 	CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.");
 	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel");
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up");
+	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside");
+	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
 
@@ -338,11 +344,53 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 {
 	if (inReadyUp)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor && !(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
+		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
-			SetFrozen(client, true);
+			if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+			{
+				if (GetConVarBool(l4d_ready_survivor_freeze))
+				{
+					if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
+					{
+						SetFrozen(client, true);
+					}
+				}
+				else if (!hasSafeTele[client])
+				{
+					GetClientAbsOrigin(client, safeTele[client]);
+					hasSafeTele[client] = true;
+				}
+			}
+			else
+			{
+				hasSafeTele[client] = false;
+			}
 		}
 	}
+}
+
+public SurvFreezeChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (!GetConVarBool(convar))
+	{
+		for (new client = 1; client <= MaxClients; client++)
+		{
+			if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+			{
+				SetFrozen(client, false);
+			}
+		}
+	}
+}
+
+public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
+{
+	if (inReadyUp)
+	{
+		TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
 }
 
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
@@ -527,6 +575,12 @@ InitiateLive()
 	{
 		readyFooter[i] = "";
 	}
+	
+	for (new i = 1; i <= MAXPLAYERS; i++)
+	{
+		hasSafeTele[i] = false;
+	}
+
 	footerCounter = 0;
 	Call_StartForward(liveForward);
 	Call_Finish();
