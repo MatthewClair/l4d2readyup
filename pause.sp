@@ -12,7 +12,7 @@ public Plugin:myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox",
 	description = "Adds pause functionality without breaking pauses",
-	version = "3",
+	version = "4",
 	url = ""
 };
 
@@ -35,6 +35,7 @@ new String:teamString[L4D2Team][] =
 new Handle:menuPanel;
 new Handle:readyCountdownTimer;
 new Handle:sv_pausable;
+new Handle:sv_noclipduringpause;
 new bool:adminPause;
 new bool:isPaused;
 new bool:teamReady[L4D2Team];
@@ -65,6 +66,7 @@ public OnPluginStart()
 	AddCommandListener(Unpause_Callback, "unpause");
 
 	sv_pausable = FindConVar("sv_pausable");
+	sv_noclipduringpause = FindConVar("sv_noclipduringpause");
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses");
 
@@ -198,14 +200,21 @@ Pause()
 
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
+	new bool:pauseProcessed = false;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client))
+		if (IsClientInGame(client))
 		{
-			SetConVarBool(sv_pausable, true);
-			FakeClientCommand(client, "pause");
-			SetConVarBool(sv_pausable, false);
-			break;
+			if(!pauseProcessed)
+			{
+				SetConVarBool(sv_pausable, true);
+				FakeClientCommand(client, "pause");
+				SetConVarBool(sv_pausable, false);
+			}
+			if (L4D2Team:GetClientTeam(client) == L4D2Team_Spectator)
+			{
+				SendConVarValue(client, sv_noclipduringpause, "1");
+			}
 		}
 	}
 }
@@ -213,14 +222,22 @@ Pause()
 Unpause()
 {
 	isPaused = false;
+
+	new bool:unpauseProcessed = false;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client))
+		if (IsClientInGame(client))
 		{
-			SetConVarBool(sv_pausable, true);
-			FakeClientCommand(client, "unpause");
-			SetConVarBool(sv_pausable, false);
-			break;
+			if(!unpauseProcessed)
+			{
+				SetConVarBool(sv_pausable, true);
+				FakeClientCommand(client, "unpause");
+				SetConVarBool(sv_pausable, false);
+			}
+			if (L4D2Team:GetClientTeam(client) == L4D2Team_Spectator)
+			{
+				SendConVarValue(client, sv_noclipduringpause, "0");
+			}
 		}
 	}
 }
