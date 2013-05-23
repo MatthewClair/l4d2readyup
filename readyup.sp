@@ -92,6 +92,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_ready", Ready_Cmd);
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
 	RegConsoleCmd("sm_unready", Unready_Cmd);
+	RegConsoleCmd("sm_return", Return_Cmd);
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd);
 
 	// Debug Commands
@@ -387,10 +388,21 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
+		for (new cli = 1; cli <= Maxclis; cli++)
+		{
+			if(IscliInGame(cli) && L4D2Team:GetcliTeam(cli) == L4D2Team_Survivor)
+			{
+				TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
+			}
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public Action:Return_Cmd(client, args)
+{
+	TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
+	return Plugin_Handled;
 }
 
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
