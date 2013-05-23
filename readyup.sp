@@ -9,8 +9,6 @@
 
 #define SOUND "/level/gnomeftw.wav"
 
-/*#define DEBUG 0*/
-
 public Plugin:myinfo =
 {
 	name = "L4D2 Ready-Up",
@@ -97,10 +95,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_return", Return_Cmd);
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd);
 
-/*#if DEBUG*/
-	RegConsoleCmd("sm_initready", InitReady_Cmd);
-	RegConsoleCmd("sm_initlive", InitLive_Cmd);
-/*#endif*/
+	// Debug Commands
+	/*RegConsoleCmd("sm_initready", InitReady_Cmd);*/
+	/*RegConsoleCmd("sm_initlive", InitLive_Cmd);*/
 
 	LoadTranslations("common.phrases");
 }
@@ -391,12 +388,13 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		for (new cli = 1; cli <= Maxclis; cli++)
+		for (new cli = 1; cli <= MaxClients; cli++)
 		{
-			if(IsClientInGame(cli) && L4D2Team:GetcliTeam(cli) == L4D2Team_Survivor)
+			if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor)
 			{
 				TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
 			}
+		}
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -413,19 +411,19 @@ public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 	InitiateReadyUp();
 }
 
-/*#if DEBUG*/
-public Action:InitReady_Cmd(client, args)
-{
-	InitiateReadyUp();
-	return Plugin_Handled;
-}
-
-public Action:InitLive_Cmd(client, args)
-{
-	InitiateLive();
-	return Plugin_Handled;
-}
-/*#endif*/
+/*
+ *public Action:InitReady_Cmd(client, args)
+ *{
+ *    InitiateReadyUp();
+ *    return Plugin_Handled;
+ *}
+ *
+ *public Action:InitLive_Cmd(client, args)
+ *{
+ *    InitiateLive();
+ *    return Plugin_Handled;
+ *}
+ */
 
 public DummyHandler(Handle:menu, MenuAction:action, param1, param2) { }
 
