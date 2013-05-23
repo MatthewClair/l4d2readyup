@@ -5,8 +5,6 @@
 #undef REQUIRE_PLUGIN
 #include "readyup"
 
-#define EXTRA_KEY_DELAY 1.0
-
 public Plugin:myinfo =
 {
 	name = "Pause plugin",
