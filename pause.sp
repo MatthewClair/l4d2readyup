@@ -42,9 +42,16 @@ new readyDelay;
 new Handle:pauseDelayCvar;
 new pauseDelay;
 new bool:readyUpIsAvailable;
+new Handle:pauseForward;
+new Handle:unpauseForward;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
+	CreateNative("IsInPause", Native_IsInPause);
+	pauseForward = CreateGlobalForward("OnPause", ET_Event);
+	unpauseForward = CreateGlobalForward("OnUnpause", ET_Event);
+	RegPluginLibrary("pause");
+
 	MarkNativeAsOptional("IsInReady");
 	return APLRes_Success;
 }
@@ -83,6 +90,11 @@ public OnLibraryRemoved(const String:name[])
 public OnLibraryAdded(const String:name[])
 {
 	if (StrEqual(name, "readyup")) readyUpIsAvailable = true;
+}
+
+public Native_IsInPause(Handle:plugin, numParams)
+{
+	return _:isPaused;
 }
 
 public OnClientPutInServer(client)
@@ -215,6 +227,8 @@ Pause()
 			}
 		}
 	}
+	Call_StartForward(pauseForward);
+	Call_Finish();
 }
 
 Unpause()
@@ -238,6 +252,8 @@ Unpause()
 			}
 		}
 	}
+	Call_StartForward(unpauseForward);
+	Call_Finish();
 }
 
 public Action:MenuRefresh_Timer(Handle:timer)
