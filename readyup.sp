@@ -393,7 +393,7 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 	{
 		for (new cli = 1; cli <= MaxClients; cli++)
 		{
-			if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor)
+			if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor && hasSafeTele[client])
 			{
 				TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
 			}
