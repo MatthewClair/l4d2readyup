@@ -368,7 +368,29 @@ public Action:Unpause_Callback(client, const String:command[], argc)
 
 bool:CheckFullReady()
 {
-	return teamReady[L4D2Team_Survivor] && teamReady[L4D2Team_Infected];
+	if (teamReady[L4D2Team_Survivor] && teamReady[L4D2Team_Infected])
+	{
+		return true;
+	}
+
+	new infected = GetTeamHumanCount(L4D2Team_Infected);
+	if (teamReady[L4D2Team_Survivor] && infected == 0)
+	{
+		return true;
+	}
+
+	new survivors = GetTeamHumanCount(L4D2Team_Survivor);
+	if (survivors == 0 && teamReady[L4D2Team_Survivor])
+	{
+		return true;
+	}
+
+	if (survivors == 0 && infected == 0)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 stock IsPlayer(client)
@@ -389,3 +411,18 @@ stock PrintToTeam(author, L4D2Team:team, const String:buffer[])
 }
 
 public DummyHandler(Handle:menu, MenuAction:action, param1, param2) { }
+
+stock GetTeamHumanCount(L4D2Team:team)
+{
+	new humans = 0;
+	
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == team)
+		{
+			humans++;
+		}
+	}
+	
+	return humans;
+}
