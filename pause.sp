@@ -220,6 +220,7 @@ Pause()
 				SetConVarBool(sv_pausable, true);
 				FakeClientCommand(client, "pause");
 				SetConVarBool(sv_pausable, false);
+				pauseProcessed = true;
 			}
 			if (L4D2Team:GetClientTeam(client) == L4D2Team_Spectator)
 			{
@@ -245,6 +246,7 @@ Unpause()
 				SetConVarBool(sv_pausable, true);
 				FakeClientCommand(client, "unpause");
 				SetConVarBool(sv_pausable, false);
+				unpauseProcessed = true;
 			}
 			if (L4D2Team:GetClientTeam(client) == L4D2Team_Spectator)
 			{
