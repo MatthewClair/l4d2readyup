@@ -368,29 +368,8 @@ public Action:Unpause_Callback(client, const String:command[], argc)
 
 bool:CheckFullReady()
 {
-	if (teamReady[L4D2Team_Survivor] && teamReady[L4D2Team_Infected])
-	{
-		return true;
-	}
-
-	new infected = GetTeamHumanCount(L4D2Team_Infected);
-	if (teamReady[L4D2Team_Survivor] && infected == 0)
-	{
-		return true;
-	}
-
-	new survivors = GetTeamHumanCount(L4D2Team_Survivor);
-	if (survivors == 0 && teamReady[L4D2Team_Survivor])
-	{
-		return true;
-	}
-
-	if (survivors == 0 && infected == 0)
-	{
-		return true;
-	}
-
-	return false;
+	return (teamReady[L4D2Team_Survivor] || GetTeamHumanCount(L4D2Team_Survivor))
+		&& (teamReady[L4D2Team_Infected] || GetTeamHumanCount(L4D2Team_Infected));
 }
 
 stock IsPlayer(client)
