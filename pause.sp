@@ -368,8 +368,8 @@ public Action:Unpause_Callback(client, const String:command[], argc)
 
 bool:CheckFullReady()
 {
-	return (teamReady[L4D2Team_Survivor] || GetTeamHumanCount(L4D2Team_Survivor))
-		&& (teamReady[L4D2Team_Infected] || GetTeamHumanCount(L4D2Team_Infected));
+	return (teamReady[L4D2Team_Survivor] || GetTeamHumanCount(L4D2Team_Survivor) == 0)
+		&& (teamReady[L4D2Team_Infected] || GetTeamHumanCount(L4D2Team_Infected) == 0);
 }
 
 stock IsPlayer(client)
