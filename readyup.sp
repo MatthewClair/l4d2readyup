@@ -6,6 +6,7 @@
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
+#define REALLY_BIG_FLOAT 2000000000.0
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -52,6 +53,7 @@ new bool:isPlayerReady[MAXPLAYERS + 1];
 new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
+new info_survivor_position_entRef;
 
 new bool:hasSafeTele[MAXPLAYERS+1];
 new Float:safeTele[MAXPLAYERS+1][3];
@@ -100,6 +102,7 @@ public OnPluginStart()
 #if DEBUG
 	RegConsoleCmd("sm_initready", InitReady_Cmd);
 	RegConsoleCmd("sm_initlive", InitLive_Cmd);
+	RegConsoleCmd("sm_findsaferoom", FindSaferoom_Cmd);
 #endif
 
 	LoadTranslations("common.phrases");
@@ -126,6 +129,7 @@ public OnMapEnd()
 {
 	if (inReadyUp)
 		InitiateLive();
+	info_survivor_position_entRef = -1;
 }
 
 public OnClientDisconnect(client)
@@ -391,11 +395,27 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		for (new cli = 1; cli <= MaxClients; cli++)
+		new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+		if (info_survivor_position > 0)
 		{
-			if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor && hasSafeTele[client])
+			decl Float:safePlace[3];
+			GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
+			for (new cli = 1; cli <= MaxClients; cli++)
 			{
-				TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
+				if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor)
+				{
+					TeleportEntity(cli, safePlace, NULL_VECTOR, NULL_VECTOR);
+				}
+			}
+		}
+		else /* If the info_survivor_position is missing just revert to the old system */
+		{
+			for (new cli = 1; cli <= MaxClients; cli++)
+			{
+				if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor && hasSafeTele[client])
+				{
+					TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
+				}
 			}
 		}
 		return Plugin_Handled;
@@ -405,13 +425,30 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
-	TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
+	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+	if (info_survivor_position > 0)
+	{
+		decl Float:safePlace[3];
+		GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
+		TeleportEntity(client, safePlace, NULL_VECTOR, NULL_VECTOR);
+	}
+	else if (hasSafeTele[client])
+	{
+		TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
+	}
 	return Plugin_Handled;
 }
 
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitiateReadyUp();
+
+	CreateTimer(5.0, RoundStartDelay_Timer);
+}
+
+public Action:RoundStartDelay_Timer(Handle:timer)
+{
+	FindSaferoom();
 }
 
 #if DEBUG
@@ -672,6 +709,58 @@ stock IsPlayer(client)
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
+
+stock bool:FindSaferoom()
+{
+	new survivor = -1;
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		{
+			survivor = client;
+			break;
+		}
+	}
+	if (survivor > 0)
+	{
+		new psychonic = GetMaxEntities();
+		decl String:classname[64];
+		decl Float:entOrigin[3];
+		new Float:survOrigin[3];
+		GetClientAbsOrigin(survivor, survOrigin);
+		/* lazy */
+		new Float:shortestDist = REALLY_BIG_FLOAT;
+		new closestEnt = -1;
+		decl Float:tmp;
+		for (new ent = MaxClients + 1; ent <= psychonic; ent++)
+		{
+			if (IsValidEntity(ent) && GetEntityClassname(ent, classname, sizeof(classname)) && StrEqual(classname, "info_survivor_position"))
+			{
+				GetEntPropVector(ent, Prop_Send, "m_vecOrigin", entOrigin);
+				tmp = GetVectorDistance(entOrigin, survOrigin, true);
+				if (tmp < shortestDist)
+				{
+					closestEnt = ent;
+					shortestDist = tmp;
+				}
+			}
+		}
+		if (shortestDist < REALLY_BIG_FLOAT)
+		{
+			info_survivor_position_entRef = EntIndexToEntRef(closestEnt);
+			return true;
+		}
+	}
+	return false;
+}
+
+#if DEBUG
+public Action:FindSaferoom_Cmd(client, args)
+{
+	PrintToChat(client, "Success? %s", FindSaferoom() ? "true" : "false");
+	return Plugin_Handled;
+}
+#endif
 
 stock DoSecrets(client)
 {
