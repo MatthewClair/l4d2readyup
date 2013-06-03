@@ -7,6 +7,7 @@
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
 #define REALLY_BIG_FLOAT 2000000000.0
+#define FIND_SAFEROOM_TRIAL_LIMIT 10
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -53,8 +54,10 @@ new bool:isPlayerReady[MAXPLAYERS + 1];
 new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
-new info_survivor_position_entRef;
 
+new info_survivor_position_entRef;
+new bool:foundSaferoom;
+new findSaferoomTrials;
 new bool:hasSafeTele[MAXPLAYERS+1];
 new Float:safeTele[MAXPLAYERS+1][3];
 
@@ -136,6 +139,7 @@ public OnClientDisconnect(client)
 {
 	hiddenPanel[client] = false;
 	isPlayerReady[client] = false;
+	hasSafeTele[client] = false;
 }
 
 public Native_AddStringToReadyFooter(Handle:plugin, numParams)
@@ -354,6 +358,12 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	{
 		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
+			if (!foundSaferoom && findSaferoomTrials < FIND_SAFEROOM_TRIAL_LIMIT)
+			{
+				FindSaferoom();
+				++findSaferoomTrials;
+			}
+
 			if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 			{
 				if (GetConVarBool(l4d_ready_survivor_freeze))
@@ -425,6 +435,11 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
+	if (!foundSaferoom)
+	{
+		FindSaferoom();
+	}
+
 	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
 	if (info_survivor_position > 0)
 	{
@@ -442,13 +457,6 @@ public Action:Return_Cmd(client, args)
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitiateReadyUp();
-
-	CreateTimer(5.0, RoundStartDelay_Timer);
-}
-
-public Action:RoundStartDelay_Timer(Handle:timer)
-{
-	FindSaferoom();
 }
 
 #if DEBUG
@@ -581,7 +589,9 @@ InitiateReadyUp()
 	for (new i = 0; i <= MAXPLAYERS; i++)
 	{
 		isPlayerReady[i] = false;
+		hasSafeTele[i] = false;
 	}
+	foundSaferoom = false;
 
 	UpdatePanel();
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -748,10 +758,10 @@ stock bool:FindSaferoom()
 		if (shortestDist < REALLY_BIG_FLOAT)
 		{
 			info_survivor_position_entRef = EntIndexToEntRef(closestEnt);
-			return true;
+			foundSaferoom = true;
 		}
 	}
-	return false;
+	return foundSaferoom;
 }
 
 #if DEBUG
