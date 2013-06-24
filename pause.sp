@@ -26,7 +26,7 @@ new String:teamString[L4D2Team][] =
 {
 	"None",
 	"Spectator",
-	"Survivor",
+	"Survivors",
 	"Infected"
 };
 
@@ -384,7 +384,7 @@ stock PrintToTeam(author, L4D2Team:team, const String:buffer[])
 	{
 		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
 		{
-			CPrintToChatEx(client, author, "(%s) {teamcolor}%N{default}: %s", teamString[L4D2Team:GetClientTeam(author)], author, buffer);
+			CPrintToChatEx(client, author, "(%s) {teamcolor}%N{default} :  %s", teamString[L4D2Team:GetClientTeam(author)], author, buffer);
 		}
 	}
 }
