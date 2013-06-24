@@ -7,7 +7,6 @@
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
 #define REALLY_BIG_FLOAT 2000000000.0
-#define FIND_SAFEROOM_TRIAL_LIMIT 10
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -18,7 +17,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "3",
+	version = "4",
 	url = ""
 };
 
@@ -57,9 +56,6 @@ new bool:blockSecretSpam[MAXPLAYERS + 1];
 
 new info_survivor_position_entRef;
 new bool:foundSaferoom;
-new findSaferoomTrials;
-new bool:hasSafeTele[MAXPLAYERS+1];
-new Float:safeTele[MAXPLAYERS+1][3];
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -103,9 +99,9 @@ public OnPluginStart()
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd);
 
 #if DEBUG
-	RegConsoleCmd("sm_initready", InitReady_Cmd);
-	RegConsoleCmd("sm_initlive", InitLive_Cmd);
-	RegConsoleCmd("sm_findsaferoom", FindSaferoom_Cmd);
+	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
+	RegAdminCmd("sm_initlive", InitLive_Cmd, ADMFLAG_ROOT);
+	RegAdminCmd("sm_findsaferoom", FindSaferoom_Cmd, ADMFLAG_ROOT);
 #endif
 
 	LoadTranslations("common.phrases");
@@ -139,7 +135,6 @@ public OnClientDisconnect(client)
 {
 	hiddenPanel[client] = false;
 	isPlayerReady[client] = false;
-	hasSafeTele[client] = false;
 }
 
 public Native_AddStringToReadyFooter(Handle:plugin, numParams)
@@ -358,10 +353,9 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	{
 		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
-			if (!foundSaferoom && findSaferoomTrials < FIND_SAFEROOM_TRIAL_LIMIT)
+			if (!foundSaferoom)
 			{
 				FindSaferoom();
-				++findSaferoomTrials;
 			}
 
 			if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
@@ -373,15 +367,6 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 						SetFrozen(client, true);
 					}
 				}
-				else if (!hasSafeTele[client])
-				{
-					GetClientAbsOrigin(client, safeTele[client]);
-					hasSafeTele[client] = true;
-				}
-			}
-			else
-			{
-				hasSafeTele[client] = false;
 			}
 		}
 	}
@@ -406,6 +391,12 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 	if (inReadyUp)
 	{
 		new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+		if (info_survivor_position <= 0)
+		{
+			FindSaferoom();
+			info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+		}
+
 		if (info_survivor_position > 0)
 		{
 			decl Float:safePlace[3];
@@ -418,16 +409,6 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 				}
 			}
 		}
-		else /* If the info_survivor_position is missing just revert to the old system */
-		{
-			for (new cli = 1; cli <= MaxClients; cli++)
-			{
-				if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor && hasSafeTele[client])
-				{
-					TeleportEntity(cli, safeTele[cli], NULL_VECTOR, NULL_VECTOR);
-				}
-			}
-		}
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -435,21 +416,19 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
-	if (!foundSaferoom)
+	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+
+	if (info_survivor_position <= 0)
 	{
 		FindSaferoom();
+		info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
 	}
 
-	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
 	if (info_survivor_position > 0)
 	{
 		decl Float:safePlace[3];
 		GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
 		TeleportEntity(client, safePlace, NULL_VECTOR, NULL_VECTOR);
-	}
-	else if (hasSafeTele[client])
-	{
-		TeleportEntity(client, safeTele[client], NULL_VECTOR, NULL_VECTOR);
 	}
 	return Plugin_Handled;
 }
@@ -589,7 +568,6 @@ InitiateReadyUp()
 	for (new i = 0; i <= MAXPLAYERS; i++)
 	{
 		isPlayerReady[i] = false;
-		hasSafeTele[i] = false;
 	}
 	foundSaferoom = false;
 
@@ -626,22 +604,30 @@ InitiateLive()
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
+	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+	if (info_survivor_position <= 0)
+	{
+		FindSaferoom();
+		info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
+	}
+
+	decl Float:safePlace[3];
 	for (new client = 1; client <= MaxClients; client++)
 	{
 		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			SetFrozen(client, false);
+			if (!GetConVarBool(l4d_ready_survivor_freeze) && info_survivor_position > 0)
+			{
+				GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
+				TeleportEntity(client, safePlace, NULL_VECTOR, NULL_VECTOR);
+			}
 		}
 	}
 	
 	for (new i = 0; i < MAX_FOOTERS; i++)
 	{
 		readyFooter[i] = "";
-	}
-	
-	for (new i = 1; i <= MAXPLAYERS; i++)
-	{
-		hasSafeTele[i] = false;
 	}
 
 	footerCounter = 0;
@@ -731,6 +717,7 @@ stock bool:FindSaferoom()
 			break;
 		}
 	}
+
 	if (survivor > 0)
 	{
 		new psychonic = GetMaxEntities();
