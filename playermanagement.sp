@@ -4,7 +4,6 @@
 #include <sdktools>
 #include <colors>
 
-#define GAMECONFIG_FILE "left4downtown.l4d2"
 #define ZC_TANK 8
 
 public Plugin:myinfo =

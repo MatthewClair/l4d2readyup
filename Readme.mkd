@@ -29,7 +29,7 @@ This is the only Cvar that actually impacts the functionality of ready-up.  Enab
 
     l4d_ready_survivor_freeze 1 // Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside
 
-This Cvar allows survivors to move around during readyup.  If someone tries to leave the saferoom, all survivors will be teleported back to their starting position.  This may not be something wanted for match configs however as survivors can get to some places that normally have a risk of leaving the saferoom (ex: the edge of the roof on Hard Rain 1 is in the saferoom but getting to it risks leaving the saferoom early).
+This Cvar allows survivors to move around during readyup.  If someone tries to leave the saferoom, all survivors will be teleported back to their starting position.  When the match goes live survivors will be teleported back to the safe starting position.
 
 The follow Cvars exist in `l4dready` but no longer exist (with a little blurb why for each Cvar):
 
@@ -54,9 +54,9 @@ The plugin supports the usual array of commands one would expect in a ready-up p
     sm_toggleready
     sm_unready
     sm_resetcasters
-	sm_return
+    sm_return
 
-`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truly not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can unregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.  `sm_hide` and `sm_show` hide the ready-up display so other plugins (such as admin menus) can be seen when ready-up is running.  `sm_resetcasters` is a server command that must be included in `confogl_off.cfg` (or the equivalent location for non-Confogl configs).  `sm_return` is a command that compliments the unfrozen survivor functionality.  It is possible that players get to places they can't get out of such as underwater on Hard Rain 1.  This gives them a way to return to their team.  It will not work if the player got control of the survivor underwater though so if griefing is a major concern you may want to just keep survivors frozen during ready-up..
+`sm_caster` now allows admins to register non-admins as casters.  These players must ready-up before the round will begin.  `sm_forcestart` allows admins to force start a round.  However unlike `l4dready` the ready-up can be cancelled by non-admins.  If a player is truly not ready the round shouldn't be started without them, and if they are just being trolls they should be removed from the game.  `sm_notcaster` is so non-admins can unregister themselves a caster.  This way an admin isn't required if a player no longer wants to cast a game.  `sm_ready` and `sm_unready` are the same as previously except you are now able to bind them to a key without using chat.  `sm_toggleready` is a new command that switches your ready status automatically.  `sm_hide` and `sm_show` hide the ready-up display so other plugins (such as admin menus) can be seen when ready-up is running.  `sm_resetcasters` is a server command that must be included in `confogl_off.cfg` (or the equivalent location for non-Confogl configs).  `sm_return` is a command that compliments the unfrozen survivor functionality.  It is possible that players get to places they can't get out of such as underwater on Hard Rain 1.  This gives them a way to return to the normal area if everyone is trapped below.
 
 There is also one easter-egg command that only some players are able to use (it is nothing bad, just an alternate way to ready-up with a little surprise!)
 
