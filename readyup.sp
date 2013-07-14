@@ -54,9 +54,6 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
-new info_survivor_position_entRef;
-new bool:foundSaferoom;
-
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
@@ -128,7 +125,6 @@ public OnMapEnd()
 {
 	if (inReadyUp)
 		InitiateLive();
-	info_survivor_position_entRef = -1;
 }
 
 public OnClientDisconnect(client)
@@ -351,21 +347,13 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 {
 	if (inReadyUp)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client))
+		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 		{
-			if (!foundSaferoom)
+			if (GetConVarBool(l4d_ready_survivor_freeze))
 			{
-				FindSaferoom();
-			}
-
-			if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
-			{
-				if (GetConVarBool(l4d_ready_survivor_freeze))
+				if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
 				{
-					if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
-					{
-						SetFrozen(client, true);
-					}
+					SetFrozen(client, true);
 				}
 			}
 		}
@@ -374,41 +362,14 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
 public SurvFreezeChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	if (!GetConVarBool(convar))
-	{
-		for (new client = 1; client <= MaxClients; client++)
-		{
-			if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
-			{
-				SetFrozen(client, false);
-			}
-		}
-	}
+	ReturnTeamToSaferoom(GetConVarBool(convar));
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-		if (info_survivor_position <= 0)
-		{
-			FindSaferoom();
-			info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-		}
-
-		if (info_survivor_position > 0)
-		{
-			decl Float:safePlace[3];
-			GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
-			for (new cli = 1; cli <= MaxClients; cli++)
-			{
-				if(IsClientInGame(cli) && L4D2Team:GetClientTeam(cli) == L4D2Team_Survivor)
-				{
-					TeleportEntity(cli, safePlace, NULL_VECTOR, NULL_VECTOR);
-				}
-			}
-		}
+		ReturnTeamToSaferoom(false);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -416,20 +377,10 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
-	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-
-	if (info_survivor_position <= 0)
-	{
-		FindSaferoom();
-		info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-	}
-
-	if (info_survivor_position > 0)
-	{
-		decl Float:safePlace[3];
-		GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
-		TeleportEntity(client, safePlace, NULL_VECTOR, NULL_VECTOR);
-	}
+	new flags = GetCommandFlags("warp_to_start_area");
+	SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+	FakeClientCommand(client, "warp_to_start_area");
+	SetCommandFlags("warp_to_start_area", flags);
 	return Plugin_Handled;
 }
 
@@ -569,7 +520,6 @@ InitiateReadyUp()
 	{
 		isPlayerReady[i] = false;
 	}
-	foundSaferoom = false;
 
 	UpdatePanel();
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -604,26 +554,8 @@ InitiateLive()
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
-	new info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-	if (info_survivor_position <= 0)
-	{
-		FindSaferoom();
-		info_survivor_position = EntRefToEntIndex(info_survivor_position_entRef);
-	}
+	ReturnTeamToSaferoom(false);
 
-	decl Float:safePlace[3];
-	for (new client = 1; client <= MaxClients; client++)
-	{
-		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
-		{
-			SetFrozen(client, false);
-			if (!GetConVarBool(l4d_ready_survivor_freeze) && info_survivor_position > 0)
-			{
-				GetEntPropVector(info_survivor_position, Prop_Send, "m_vecOrigin", safePlace);
-				TeleportEntity(client, safePlace, NULL_VECTOR, NULL_VECTOR);
-			}
-		}
-	}
 	
 	for (new i = 0; i < MAX_FOOTERS; i++)
 	{
@@ -633,6 +565,27 @@ InitiateLive()
 	footerCounter = 0;
 	Call_StartForward(liveForward);
 	Call_Finish();
+}
+
+ReturnTeamToSaferoom(bool:freezeStatus)
+{
+	new flags = GetCommandFlags("warp_to_start_area");
+	SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		{
+			SetFrozen(client, freezeStatus);
+
+			if (!GetConVarBool(l4d_ready_survivor_freeze))
+			{
+				FakeClientCommand(client, "warp_to_start_area");
+			}
+		}
+	}
+
+	SetCommandFlags("warp_to_start_area", flags);
 }
 
 bool:CheckFullReady()
@@ -705,59 +658,6 @@ stock IsPlayer(client)
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
-
-stock bool:FindSaferoom()
-{
-	new survivor = -1;
-	for (new client = 1; client <= MaxClients; client++)
-	{
-		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
-		{
-			survivor = client;
-			break;
-		}
-	}
-
-	if (survivor > 0)
-	{
-		new psychonic = GetMaxEntities();
-		decl String:classname[64];
-		decl Float:entOrigin[3];
-		new Float:survOrigin[3];
-		GetClientAbsOrigin(survivor, survOrigin);
-		/* lazy */
-		new Float:shortestDist = REALLY_BIG_FLOAT;
-		new closestEnt = -1;
-		decl Float:tmp;
-		for (new ent = MaxClients + 1; ent <= psychonic; ent++)
-		{
-			if (IsValidEntity(ent) && GetEntityClassname(ent, classname, sizeof(classname)) && StrEqual(classname, "info_survivor_position"))
-			{
-				GetEntPropVector(ent, Prop_Send, "m_vecOrigin", entOrigin);
-				tmp = GetVectorDistance(entOrigin, survOrigin, true);
-				if (tmp < shortestDist)
-				{
-					closestEnt = ent;
-					shortestDist = tmp;
-				}
-			}
-		}
-		if (shortestDist < REALLY_BIG_FLOAT)
-		{
-			info_survivor_position_entRef = EntIndexToEntRef(closestEnt);
-			foundSaferoom = true;
-		}
-	}
-	return foundSaferoom;
-}
-
-#if DEBUG
-public Action:FindSaferoom_Cmd(client, args)
-{
-	PrintToChat(client, "Success? %s", FindSaferoom() ? "true" : "false");
-	return Plugin_Handled;
-}
-#endif
 
 stock DoSecrets(client)
 {
