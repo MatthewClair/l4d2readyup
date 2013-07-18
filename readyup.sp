@@ -546,6 +546,8 @@ InitiateLive()
 	inReadyUp = false;
 	inLiveCountdown = false;
 
+	ReturnTeamToSaferoom(false);
+
 	SetConVarBool(director_no_specials, false);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, false);
@@ -554,9 +556,6 @@ InitiateLive()
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
-	ReturnTeamToSaferoom(false);
-
-	
 	for (new i = 0; i < MAX_FOOTERS; i++)
 	{
 		readyFooter[i] = "";
