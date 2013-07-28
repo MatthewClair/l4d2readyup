@@ -33,6 +33,7 @@ enum L4D2Team
 new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
+new Handle:l4d_ready_max_spectators;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -71,6 +72,7 @@ public OnPluginStart()
 	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel");
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up");
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside");
+	l4d_ready_max_spectators = CreateConVar("l4d_ready_max_spectators", "4", "Maximum number of spectators to show on the ready-up panel.");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -460,8 +462,12 @@ UpdatePanel()
 			}
 			else
 			{
-				Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", ++specCount, nameBuf);
-				StrCat(specBuffer, sizeof(specBuffer), nameBuf);
+				++specCount;
+				if (specCount <= GetConVarInt(l4d_ready_max_spectators))
+				{
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", ++specCount, nameBuf);
+					StrCat(specBuffer, sizeof(specBuffer), nameBuf);
+				}
 			}
 		}
 	}
@@ -490,14 +496,15 @@ UpdatePanel()
 	if (bufLen != 0)
 	{
 		specBuffer[bufLen] = '\0';
-		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
 		DrawPanelText(menuPanel, "Spectator");
+		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
+		if (specCount > l4d_ready_max_spectators)
+			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", specCount);
 		DrawPanelText(menuPanel, specBuffer);
 	}
 
 	decl String:cfgBuf[128];
 	GetConVarString(l4d_ready_cfg_name, cfgBuf, sizeof(cfgBuf));
-	ReplaceString(cfgBuf, sizeof(cfgBuf), "#", "_");
 	DrawPanelText(menuPanel, cfgBuf);
 
 	for (new i = 0; i < MAX_FOOTERS; i++)
@@ -656,6 +663,21 @@ stock IsPlayer(client)
 {
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
+}
+
+stock GetTeamHumanCount(L4D2Team:team)
+{
+	new humans = 0;
+	
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == team)
+		{
+			humans++;
+		}
+	}
+	
+	return humans;
 }
 
 stock DoSecrets(client)
