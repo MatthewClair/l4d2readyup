@@ -6,7 +6,6 @@
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
-#define REALLY_BIG_FLOAT 2000000000.0
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -68,11 +67,11 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 
 public OnPluginStart()
 {
-	CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.");
-	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel");
-	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up");
-	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside");
-	l4d_ready_max_spectators = CreateConVar("l4d_ready_max_spectators", "4", "Maximum number of spectators to show on the ready-up panel.");
+	CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_PLUGIN|FCVAR_PRINTABLEONLY);
+	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	l4d_ready_max_spectators = CreateConVar("l4d_ready_max_spectators", "4", "Maximum number of spectators to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -85,17 +84,17 @@ public OnPluginStart()
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 
-	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN);
-	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN);
-	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd);
-	RegConsoleCmd("sm_hide", Hide_Cmd);
-	RegConsoleCmd("sm_show", Show_Cmd);
-	RegConsoleCmd("sm_notcasting", NotCasting_Cmd);
-	RegConsoleCmd("sm_ready", Ready_Cmd);
-	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd);
-	RegConsoleCmd("sm_unready", Unready_Cmd);
-	RegConsoleCmd("sm_return", Return_Cmd);
-	RegServerCmd("sm_resetcasters", ResetCaster_Cmd);
+	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
+	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
+	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd, "Every player has a different secret number between 0-1023");
+	RegConsoleCmd("sm_hide", Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
+	RegConsoleCmd("sm_show", Show_Cmd, "Shows a hidden ready-up panel");
+	RegConsoleCmd("sm_notcasting", NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
+	RegConsoleCmd("sm_ready", Ready_Cmd, "Mark yourself as ready for the round to go live");
+	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggle your ready status");
+	RegConsoleCmd("sm_unready", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
+	RegConsoleCmd("sm_return", Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
+	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
 
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);

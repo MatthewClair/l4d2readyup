@@ -45,9 +45,9 @@ public OnPluginStart()
 	RegAdminCmd("sm_swap", Swap_Cmd, ADMFLAG_BAN, "sm_swap <player1> [player2] ... [playerN] - swap all listed players to opposite teams");
 	RegAdminCmd("sm_swapto", SwapTo_Cmd, ADMFLAG_BAN, "sm_swapto <teamnum> <player1> [player2] ... [playerN] - swap all listed players to <teamnum> (1,2, or 3)");
 	RegAdminCmd("sm_swapteams", SwapTeams_Cmd, ADMFLAG_BAN, "sm_swapteams - swap the players between both teams");
-	RegConsoleCmd("sm_spectate", Spectate_Cmd);
-	RegConsoleCmd("sm_spec", Spectate_Cmd);
-	RegConsoleCmd("sm_s", Spectate_Cmd);
+	RegConsoleCmd("sm_spectate", Spectate_Cmd, "Moves you to the spectator team");
+	RegConsoleCmd("sm_spec", Spectate_Cmd, "Moves you to the spectator team");
+	RegConsoleCmd("sm_s", Spectate_Cmd, "Moves you to the spectator team");
 
 	AddCommandListener(Vote_Listener, "vote");
 	AddCommandListener(Vote_Listener, "callvote");

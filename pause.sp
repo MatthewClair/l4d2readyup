@@ -58,13 +58,13 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 
 public OnPluginStart()
 {
-	RegConsoleCmd("sm_pause", Pause_Cmd);
-	RegConsoleCmd("sm_unpause", Unpause_Cmd);
-	RegConsoleCmd("sm_ready", Unpause_Cmd);
-	RegConsoleCmd("sm_unready", Unready_Cmd);
+	RegConsoleCmd("sm_pause", Pause_Cmd, "Pauses the game");
+	RegConsoleCmd("sm_unpause", Unpause_Cmd, "Marks your team as ready for an unpause");
+	RegConsoleCmd("sm_ready", Unpause_Cmd, "Marks your team as ready for an unpause");
+	RegConsoleCmd("sm_unready", Unready_Cmd, "Marks your team as ready for an unpause");
 
-	RegAdminCmd("sm_forcepause", ForcePause_Cmd, ADMFLAG_BAN);
-	RegAdminCmd("sm_forceunpause", ForceUnpause_Cmd, ADMFLAG_BAN);
+	RegAdminCmd("sm_forcepause", ForcePause_Cmd, ADMFLAG_BAN, "Pauses the game and only allows admins to unpause");
+	RegAdminCmd("sm_forceunpause", ForceUnpause_Cmd, ADMFLAG_BAN, "Unpauses the game regardless of team ready status.  Must be used to unpause admin pauses");
 
 	AddCommandListener(Say_Callback, "say");
 	AddCommandListener(TeamSay_Callback, "say_team");
@@ -73,7 +73,7 @@ public OnPluginStart()
 	sv_pausable = FindConVar("sv_pausable");
 	sv_noclipduringpause = FindConVar("sv_noclipduringpause");
 
-	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses");
+	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_PLUGIN, true, 0.0);
 
 }
 
