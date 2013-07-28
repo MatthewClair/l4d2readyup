@@ -250,6 +250,7 @@ stock bool:ChangeClientTeamEx(client, L4D2Team:team, bool:force = true)
 		new bot = FindSurvivorBot();
 		if (-1 == bot) /* we couldn't find a bot, how the hell do we deal with this efficiently?? */
 		{
+			LogMessage("No survivor bot was found so we are going to create one!");
 			ChangeClientTeam(client, _:team);
 			new flags = GetCommandFlags("respawn");
 			SetCommandFlags("respawn", flags & ~FCVAR_CHEAT);
@@ -258,10 +259,7 @@ stock bool:ChangeClientTeamEx(client, L4D2Team:team, bool:force = true)
 		}
 		else
 		{
-			new flags = GetCommandFlags("sb_takecontrol");
-			SetCommandFlags("sb_takecontrol", flags & ~FCVAR_CHEAT);
-			FakeClientCommand(client, "sb_takecontrol");
-			SetCommandFlags("sb_takecontrol", flags);
+			FakeClientCommand(client, "jointeam 2");
 		}
 	}
 	return true;
