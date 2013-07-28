@@ -17,7 +17,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "4",
+	version = "5",
 	url = ""
 };
 
@@ -358,6 +358,13 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 					SetFrozen(client, true);
 				}
 			}
+			else
+			{
+				if (GetEntityFlags(client) & FL_INWATER)
+				{
+					ReturnPlayerToSaferoom(client, false);
+				}
+			}
 		}
 	}
 }
@@ -379,10 +386,7 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
-	new flags = GetCommandFlags("warp_to_start_area");
-	SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
-	FakeClientCommand(client, "warp_to_start_area");
-	SetCommandFlags("warp_to_start_area", flags);
+	ReturnPlayerToSaferoom(client, false);
 	return Plugin_Handled;
 }
 
@@ -498,7 +502,7 @@ UpdatePanel()
 		specBuffer[bufLen] = '\0';
 		DrawPanelText(menuPanel, "Spectator");
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
-		if (specCount > l4d_ready_max_spectators)
+		if (specCount > GetConVarInt(l4d_ready_max_spectators))
 			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", specCount);
 		DrawPanelText(menuPanel, specBuffer);
 	}
@@ -573,6 +577,26 @@ InitiateLive()
 	Call_Finish();
 }
 
+ReturnPlayerToSaferoom(client, bool:flagsSet = true)
+{
+	new flags;
+	if (!flagsSet)
+	{
+		flags = GetCommandFlags("warp_to_start_area");
+		SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+	}
+
+	SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
+	SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
+	SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
+	FakeClientCommand(client, "warp_to_start_area");
+
+	if (!flagsSet)
+	{
+		SetCommandFlags("warp_to_start_area", flags);
+	}
+}
+
 ReturnTeamToSaferoom(bool:freezeStatus)
 {
 	new flags = GetCommandFlags("warp_to_start_area");
@@ -583,11 +607,7 @@ ReturnTeamToSaferoom(bool:freezeStatus)
 		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			SetFrozen(client, freezeStatus);
-
-			if (!GetConVarBool(l4d_ready_survivor_freeze))
-			{
-				FakeClientCommand(client, "warp_to_start_area");
-			}
+			ReturnPlayerToSaferoom(client, true);
 		}
 	}
 
