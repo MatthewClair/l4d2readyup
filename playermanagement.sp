@@ -36,6 +36,8 @@ new Handle:z_max_player_zombies;
 new L4D2Team:pendingSwaps[MAXPLAYERS+1];
 new bool:blockVotes[MAXPLAYERS+1];
 
+new Handle:l4d_pm_supress_spectate;
+
 public OnPluginStart()
 {
 	LoadTranslations("common.phrases");
@@ -52,11 +54,16 @@ public OnPluginStart()
 
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
+
+	l4d_pm_supress_spectate = CreateConVar("l4d_pm_supress_spectate", "0", "Don't print messages when players spectate", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 }
 
 public Action:Spectate_Cmd(client, args)
 {
-	CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
+	if (!GetConVarBool(l4d_pm_supress_spectate))
+	{
+		CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
+	}
 	new L4D2Team:team = L4D2Team:GetClientTeam(client);
 	if (team == L4D2Team_Survivor)
 	{
