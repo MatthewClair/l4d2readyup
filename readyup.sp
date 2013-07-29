@@ -589,6 +589,11 @@ ReturnPlayerToSaferoom(client, bool:flagsSet = true)
 	SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
 	SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
 	FakeClientCommand(client, "warp_to_start_area");
+	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangTwoHands");
+	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangOneHand");
+	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFingers");
+	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangAboutToFall");
+	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFalling");
 
 	if (!flagsSet)
 	{
