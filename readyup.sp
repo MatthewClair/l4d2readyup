@@ -468,7 +468,7 @@ UpdatePanel()
 				++specCount;
 				if (specCount <= GetConVarInt(l4d_ready_max_spectators))
 				{
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", ++specCount, nameBuf);
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", specCount, nameBuf);
 					StrCat(specBuffer, sizeof(specBuffer), nameBuf);
 				}
 			}
