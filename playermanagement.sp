@@ -303,9 +303,14 @@ stock GetTeamMaxHumans(L4D2Team:team)
 /* return -1 if no bot found, clientid otherwise */
 stock FindSurvivorBot()
 {
-	decl bot;
-	for(bot = 1; bot <= MaxClients && (!IsClientInGame(bot) || !IsFakeClient(bot) || (L4D2Team:GetClientTeam(bot) != L4D2Team_Survivor)); bot++) {}
-	return (bot == MaxClients+1) ? -1 : bot;
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) && IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		{
+			return client;
+		}
+	}
+	return -1;
 }
 
 stock IsPlayer(client)
