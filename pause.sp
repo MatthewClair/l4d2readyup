@@ -44,6 +44,7 @@ new pauseDelay;
 new bool:readyUpIsAvailable;
 new Handle:pauseForward;
 new Handle:unpauseForward;
+new Handle:deferredPauseTimer;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -75,6 +76,7 @@ public OnPluginStart()
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_PLUGIN, true, 0.0);
 
+	HookEvent("round_end", RoundEnd_Event, EventHookMode_PostNoCopy);
 }
 
 public OnAllPluginsLoaded()
@@ -106,15 +108,12 @@ public OnClientPutInServer(client)
 	}
 }
 
-public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
+public RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (!isPaused)
+	if (deferredPauseTimer != INVALID_HANDLE)
 	{
-		was_pressing_IN_USE[client] = !!(buttons & IN_USE);
-	}
-	else if (isPaused && was_pressing_IN_USE[client])
-	{
-		buttons |= IN_USE;
+		CloseHandle(deferredPauseTimer);
+		deferredPauseTimer = INVALID_HANDLE;
 	}
 }
 
@@ -125,7 +124,7 @@ public Action:Pause_Cmd(client, args)
 		PrintToChatAll("[SM] %N paused the game", client);
 		pauseDelay = GetConVarInt(pauseDelayCvar);
 		if (pauseDelay == 0)
-			Pause();
+			AttemptPause();
 		else
 			CreateTimer(1.0, PauseDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
@@ -137,7 +136,7 @@ public Action:PauseDelay_Timer(Handle:timer)
 	if (pauseDelay == 0)
 	{
 		PrintToChatAll("Paused!");
-		Pause();
+		AttemptPause();
 		return Plugin_Stop;
 	}
 	else
@@ -196,6 +195,33 @@ public Action:ForceUnpause_Cmd(client, args)
 	{
 		InitiateLiveCountdown();
 	}
+}
+
+AttemptPause()
+{
+	if (deferredPauseTimer == INVALID_HANDLE)
+	{
+		if (CanPause())
+		{
+			Pause();
+		}
+		else
+		{
+			PrintToChatAll("[SM] This pause has been delayed due to a pick-up in progress!");
+			deferredPauseTimer = CreateTimer(0.1, DeferredPause_Timer, _, TIMER_REPEAT);
+		}
+	}
+}
+
+public Action:DeferredPause_Timer(Handle:timer)
+{
+	if (CanPause())
+	{
+		deferredPauseTimer = INVALID_HANDLE;
+		Pause();
+		return Plugin_Stop;
+	}
+	return Plugin_Continue;
 }
 
 Pause()
@@ -404,4 +430,31 @@ stock GetTeamHumanCount(L4D2Team:team)
 	}
 	
 	return humans;
+}
+
+stock bool:IsPlayerIncap(client) return bool:GetEntProp(client, Prop_Send, "m_isIncapacitated");
+
+bool:CanPause()
+{
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) && IsPlayerAlive(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		{
+			if (IsPlayerIncap(client))
+			{
+				if (GetEntProp(client, Prop_Send, "m_reviveOwner") > 0)
+				{
+					return false;
+				}
+			}
+			else
+			{
+				if (GetEntProp(client, Prop_Send, "m_reviveTarget") > 0)
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
