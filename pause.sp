@@ -363,7 +363,14 @@ public Action:Say_Callback(client, const String:command[], argc)
 		{
 			return Plugin_Continue;
 		}
-		CPrintToChatAllEx(client, "{teamcolor}%N{default} : %s", client, buffer);
+		if (client == 0)
+		{
+			PrintToChatAll("Console : %s", buffer);
+		}
+		else
+		{
+			CPrintToChatAllEx(client, "{teamcolor}%N{default} : %s", client, buffer);
+		}
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
