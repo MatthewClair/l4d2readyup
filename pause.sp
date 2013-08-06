@@ -37,7 +37,6 @@ new Handle:sv_noclipduringpause;
 new bool:adminPause;
 new bool:isPaused;
 new bool:teamReady[L4D2Team];
-new bool:was_pressing_IN_USE[MAXPLAYERS + 1];
 new readyDelay;
 new Handle:pauseDelayCvar;
 new pauseDelay;
