@@ -32,7 +32,7 @@ enum L4D2Team
 new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
-new Handle:l4d_ready_max_spectators;
+new Handle:l4d_ready_max_players;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -71,7 +71,7 @@ public OnPluginStart()
 	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_PLUGIN|FCVAR_PRINTABLEONLY);
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	l4d_ready_max_spectators = CreateConVar("l4d_ready_max_spectators", "4", "Maximum number of spectators to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
+	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -433,7 +433,7 @@ UpdatePanel()
 	new String:specBuffer[800] = "";
 	new readyCount = 0;
 	new unreadyCount = 0;
-	new specCount = 0;
+	new playerCount = 0;
 
 	menuPanel = CreatePanel();
 
@@ -445,6 +445,7 @@ UpdatePanel()
 	{
 		if(IsClientInGame(client) && !IsFakeClient(client))
 		{
+			++playerCount;
 			GetClientName(client, nameBuf, sizeof(nameBuf));
 			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
 			caster = GetTrieValue(casterTrie, authBuffer, dummy);
@@ -465,10 +466,9 @@ UpdatePanel()
 			}
 			else
 			{
-				++specCount;
-				if (specCount <= GetConVarInt(l4d_ready_max_spectators))
+				if (playerCount <= GetConVarInt(l4d_ready_max_players))
 				{
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", specCount, nameBuf);
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", playerCount, nameBuf);
 					StrCat(specBuffer, sizeof(specBuffer), nameBuf);
 				}
 			}
@@ -501,8 +501,8 @@ UpdatePanel()
 		specBuffer[bufLen] = '\0';
 		DrawPanelText(menuPanel, "Spectator");
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
-		if (specCount > GetConVarInt(l4d_ready_max_spectators))
-			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", specCount);
+		if (playerCount > GetConVarInt(l4d_ready_max_players))
+			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", playerCount);
 		DrawPanelText(menuPanel, specBuffer);
 	}
 
