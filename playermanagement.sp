@@ -11,7 +11,7 @@ public Plugin:myinfo =
 	name = "Player Management Plugin",
 	author = "CanadaRox",
 	description = "Player management!  Swap players/teams and spectate!",
-	version = "4",
+	version = "6",
 	url = ""
 };
 
@@ -30,6 +30,7 @@ new const L4D2Team:oppositeTeamMap[] =
 	L4D2Team_Infected,
 	L4D2Team_Survivor
 };
+
 new Handle:survivor_limit;
 new Handle:z_max_player_zombies;
 
@@ -45,6 +46,7 @@ public OnPluginStart()
 	RegAdminCmd("sm_swap", Swap_Cmd, ADMFLAG_BAN, "sm_swap <player1> [player2] ... [playerN] - swap all listed players to opposite teams");
 	RegAdminCmd("sm_swapto", SwapTo_Cmd, ADMFLAG_BAN, "sm_swapto <teamnum> <player1> [player2] ... [playerN] - swap all listed players to <teamnum> (1,2, or 3)");
 	RegAdminCmd("sm_swapteams", SwapTeams_Cmd, ADMFLAG_BAN, "sm_swapteams - swap the players between both teams");
+	RegAdminCmd("sm_fixbots", FixBots_Cmd, ADMFLAG_BAN, "sm_fixbots - Spawns survivor bots to match survivor_limit");
 	RegConsoleCmd("sm_spectate", Spectate_Cmd, "Moves you to the spectator team");
 	RegConsoleCmd("sm_spec", Spectate_Cmd, "Moves you to the spectator team");
 	RegConsoleCmd("sm_s", Spectate_Cmd, "Moves you to the spectator team");
@@ -53,9 +55,29 @@ public OnPluginStart()
 	AddCommandListener(Vote_Listener, "callvote");
 
 	survivor_limit = FindConVar("survivor_limit");
+	SetConVarBounds(survivor_limit, ConVarBound_Upper, false);
+	HookConVarChange(survivor_limit, survivor_limitChanged);
+
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
+	SetConVarBounds(z_max_player_zombies, ConVarBound_Upper, false);
 
 	l4d_pm_supress_spectate = CreateConVar("l4d_pm_supress_spectate", "0", "Don't print messages when players spectate", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+}
+
+public Action:FixBots_Cmd(client, args)
+{
+	FixBotCount();
+	return Plugin_Handled;
+}
+
+public survivor_limitChanged(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	FixBotCount();
+}
+
+public OnClientDisconnect_Post(client)
+{
+	FixBotCount();
 }
 
 public Action:Spectate_Cmd(client, args)
@@ -64,10 +86,10 @@ public Action:Spectate_Cmd(client, args)
 	{
 		CPrintToChatAllEx(client, "{teamcolor}%N{default} has become a spectator!", client);
 	}
-	new L4D2Team:team = L4D2Team:GetClientTeam(client);
+	new L4D2Team:team = GetClientTeamEx(client);
 	if (team == L4D2Team_Survivor)
 	{
-		ChangeClientTeamEx(client, L4D2Team_Spectator);
+		ChangeClientTeamEx(client, L4D2Team_Spectator, true);
 	}
 	else if (team == L4D2Team_Infected)
 	{
@@ -75,7 +97,7 @@ public Action:Spectate_Cmd(client, args)
 		{
 			ForcePlayerSuicide(client);
 		}
-		ChangeClientTeamEx(client, L4D2Team_Spectator);
+		ChangeClientTeamEx(client, L4D2Team_Spectator, true);
 	}
 	else
 	{
@@ -88,7 +110,7 @@ public Action:Spectate_Cmd(client, args)
 
 public Action:RespecDelay_Timer(Handle:timer, any:client)
 {
-	ChangeClientTeamEx(client, L4D2Team_Spectator);
+	ChangeClientTeamEx(client, L4D2Team_Spectator, true);
 	blockVotes[client] = false;
 }
 
@@ -103,10 +125,10 @@ public Action:SwapTeams_Cmd(client, args)
 	{
 		if(IsClientInGame(cli) && !IsFakeClient(cli) && IsPlayer(cli))
 		{
-			pendingSwaps[cli] = oppositeTeamMap[L4D2Team:GetClientTeam(cli)];
+			pendingSwaps[cli] = oppositeTeamMap[GetClientTeamEx(cli)];
 		}
 	}
-	ApplySwaps(client);
+	ApplySwaps(client, false);
 	return Plugin_Handled;
 }
 
@@ -144,12 +166,12 @@ public Action:Swap_Cmd(client, args)
 			target = targets[j];
 			if(IsClientInGame(target))
 			{
-				pendingSwaps[target] = oppositeTeamMap[L4D2Team:GetClientTeam(target)];
+				pendingSwaps[target] = oppositeTeamMap[GetClientTeamEx(target)];
 			}
 		}
 	}
 
-	ApplySwaps(client);
+	ApplySwaps(client, false);
 
 	return Plugin_Handled;
 }
@@ -159,12 +181,20 @@ public Action:SwapTo_Cmd(client, args)
 	if (args < 2)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_swapto <teamnum> <player1> <player2> ... <playerN>\n%d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
+		ReplyToCommand(client, "[SM] Usage: sm_swapto force <teamnum> <player1> <player2> ... <playerN>\n%d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
 		return Plugin_Handled;
 	}
 
 	decl String:argbuf[MAX_NAME_LENGTH];
+	new bool:force = false;
 
 	GetCmdArg(1, argbuf, sizeof(argbuf));
+	if (StrEqual(argbuf, "force"))
+	{
+		force = true;
+		GetCmdArg(2, argbuf, sizeof(argbuf));
+	}
+
 	new L4D2Team:team = L4D2Team:StringToInt(argbuf);
 	if (team < L4D2Team_Spectator || team > L4D2Team_Infected)
 	{
@@ -178,7 +208,7 @@ public Action:SwapTo_Cmd(client, args)
 	decl String:target_name[MAX_TARGET_LENGTH];
 	decl bool:tn_is_ml;
 
-	for (new i = 2; i <= args; i++)
+	for (new i = force?3:2; i <= args; i++)
 	{
 		GetCmdArg(i, argbuf, sizeof(argbuf));
 		targetCount = ProcessTargetString(
@@ -201,12 +231,12 @@ public Action:SwapTo_Cmd(client, args)
 		}
 	}
 
-	ApplySwaps(client);
+	ApplySwaps(client, force);
 
 	return Plugin_Handled;
 }
 
-stock ApplySwaps(sender)
+stock ApplySwaps(sender, bool:force)
 {
 	decl L4D2Team:clientTeam;
 	/* Swap everyone to spec first so we know the correct number of slots on the teams */
@@ -214,12 +244,12 @@ stock ApplySwaps(sender)
 	{
 		if(IsClientInGame(client))
 		{
-			clientTeam = L4D2Team:GetClientTeam(client);
+			clientTeam = GetClientTeamEx(client);
 			if (clientTeam != pendingSwaps[client] && pendingSwaps[client] != L4D2Team_None)
 			{
 				if (clientTeam == L4D2Team_Infected && GetZombieClass(client) != ZC_TANK)
 					ForcePlayerSuicide(client);
-				ChangeClientTeamEx(client, L4D2Team_Spectator);
+				ChangeClientTeamEx(client, L4D2Team_Spectator, true);
 			}
 		}
 	}
@@ -229,8 +259,13 @@ stock ApplySwaps(sender)
 	{
 		if(IsClientInGame(client) && pendingSwaps[client] != L4D2Team_None)
 		{
-			if (!ChangeClientTeamEx(client, pendingSwaps[client]))
-				PrintToChat(sender, "%N could not be switched because the target team was full.", client);
+			if (!ChangeClientTeamEx(client, pendingSwaps[client], force))
+			{
+				if (sender > 0)
+				{
+					PrintToChat(sender, "%N could not be switched because the target team was full or has no bot to take over.", client);
+				}
+			}
 			pendingSwaps[client] = L4D2Team_None;
 
 		}
@@ -243,33 +278,31 @@ stock ApplySwaps(sender)
 	}
 }
 
-stock bool:ChangeClientTeamEx(client, L4D2Team:team, bool:force = true)
+stock bool:ChangeClientTeamEx(client, L4D2Team:team, bool:force)
 {
-	if (L4D2Team:GetClientTeam(client) == team)
+	if (GetClientTeamEx(client) == team)
 		return true;
 	else if (!force && GetTeamHumanCount(team) == GetTeamMaxHumans(team))
 		return false;
 
 	if (team != L4D2Team_Survivor)
+	{
 		ChangeClientTeam(client, _:team);
-	if (L4D2Team_Survivor == team && !IsPlayerAlive(client))
+		return true;
+	}
+	else
 	{
 		new bot = FindSurvivorBot();
-		if (-1 == bot) /* we couldn't find a bot, how the hell do we deal with this efficiently?? */
+		if (bot > 0)
 		{
-			LogMessage("No survivor bot was found so we are going to create one!");
-			ChangeClientTeam(client, _:team);
-			new flags = GetCommandFlags("respawn");
-			SetCommandFlags("respawn", flags & ~FCVAR_CHEAT);
-			FakeClientCommand(client, "respawn");
-			SetCommandFlags("respawn", flags);
-		}
-		else
-		{
-			FakeClientCommand(client, "jointeam 2");
+			new flags = GetCommandFlags("sb_takecontrol");
+			SetCommandFlags("sb_takecontrol", flags & ~FCVAR_CHEAT);
+			FakeClientCommand(client, "sb_takecontrol");
+			SetCommandFlags("sb_takecontrol", flags);
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 stock GetTeamHumanCount(L4D2Team:team)
@@ -278,7 +311,7 @@ stock GetTeamHumanCount(L4D2Team:team)
 	
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == team)
+		if (IsClientInGame(client) && !IsFakeClient(client) && GetClientTeamEx(client) == team)
 		{
 			humans++;
 		}
@@ -305,7 +338,7 @@ stock FindSurvivorBot()
 {
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		if(IsClientInGame(client) && IsFakeClient(client) && GetClientTeamEx(client) == L4D2Team_Survivor)
 		{
 			return client;
 		}
@@ -315,8 +348,64 @@ stock FindSurvivorBot()
 
 stock IsPlayer(client)
 {
-	new L4D2Team:team = L4D2Team:GetClientTeam(client);
+	new L4D2Team:team = GetClientTeamEx(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
 
 stock GetZombieClass(client) return GetEntProp(client, Prop_Send, "m_zombieClass");
+
+stock FixBotCount()
+{
+	new survivor_count = 0;
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) && GetClientTeamEx(client) == L4D2Team_Survivor)
+		{
+			survivor_count++;
+		}
+	}
+	new limit = GetConVarInt(survivor_limit);
+	if (survivor_count < limit)
+	{
+		decl bot;
+		for (; survivor_count < limit; survivor_count++)
+		{
+			bot = CreateFakeClient("SurvivorBot");
+			if (bot != 0)
+			{
+				ChangeClientTeam(bot, _:L4D2Team_Survivor);
+				if (DispatchKeyValue(bot, "classname", "survivorbot") && DispatchSpawn(bot))
+				{
+					CreateTimer(0.1, KickFakeClient_Timer, bot);
+				}
+			}
+		}
+	}
+	else if (survivor_count > limit)
+	{
+		for (new client = 1; client <= MaxClients; client++)
+		{
+			if(IsClientInGame(client) && GetClientTeamEx(client) == L4D2Team_Survivor)
+			{
+				if (IsFakeClient(client))
+				{
+					KickClient(client);
+				}
+			}
+		}
+		PrintToChatAll("[SM] Make sure there are no duplicate survivors and everyone is able to gain points, or restart the map.");
+	}
+}
+
+public Action:KickFakeClient_Timer(Handle:timer, any:bot)
+{
+	if (IsClientConnected(bot) && IsFakeClient(bot))
+	{
+		KickClient(bot, "I hope you aren't a real boy");
+	}
+}
+
+stock L4D2Team:GetClientTeamEx(client)
+{
+	return L4D2Team:GetClientTeam(client);
+}
