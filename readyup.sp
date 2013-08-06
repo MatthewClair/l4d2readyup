@@ -435,6 +435,7 @@ UpdatePanel()
 	new readyCount = 0;
 	new unreadyCount = 0;
 	new playerCount = 0;
+	new specCount = 0;
 
 	menuPanel = CreatePanel();
 
