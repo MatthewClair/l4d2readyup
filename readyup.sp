@@ -17,7 +17,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "5",
+	version = "6",
 	url = ""
 };
 

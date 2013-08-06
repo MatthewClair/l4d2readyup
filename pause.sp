@@ -10,7 +10,7 @@ public Plugin:myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox",
 	description = "Adds pause functionality without breaking pauses",
-	version = "4",
+	version = "6",
 	url = ""
 };
 
