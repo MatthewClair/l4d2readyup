@@ -66,6 +66,14 @@ public OnPluginStart()
 
 public Action:FixBots_Cmd(client, args)
 {
+	if (client != 0)
+	{
+		PrintToChatAll("[SM] %N is attempting to fix bot counts");
+	}
+	else
+	{
+		PrintToChatAll("[SM] Console is attempting to fix bot counts");
+	}
 	FixBotCount();
 	return Plugin_Handled;
 }
