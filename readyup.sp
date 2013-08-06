@@ -467,9 +467,10 @@ UpdatePanel()
 			}
 			else
 			{
+				++specCount;
 				if (playerCount <= GetConVarInt(l4d_ready_max_players))
 				{
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", playerCount, nameBuf);
+					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", specCount, nameBuf);
 					StrCat(specBuffer, sizeof(specBuffer), nameBuf);
 				}
 			}
@@ -503,7 +504,7 @@ UpdatePanel()
 		DrawPanelText(menuPanel, "Spectator");
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
 		if (playerCount > GetConVarInt(l4d_ready_max_players))
-			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", playerCount);
+			FormatEx(specBuffer, sizeof(specBuffer), "->1. Many (%d)", specCount);
 		DrawPanelText(menuPanel, specBuffer);
 	}
 
