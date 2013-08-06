@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <left4downtown>
+#include <l4d2_direct>
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
@@ -585,15 +586,28 @@ ReturnPlayerToSaferoom(client, bool:flagsSet = true)
 		SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
 	}
 
-	SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
-	SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
-	SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
+	if (GetEntProp(client, Prop_Send, "m_isHangingFromLedge"))
+	{
+		SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
+		SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
+		SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
+		SetEntProp(client, Prop_Send, "m_iHealth", L4D2Direct_GetPreIncapHealth(client));
+		SetSurvivorTempHealth(client, Float:L4D2Direct_GetPreIncapHealthBuffer(client));
+		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangTwoHands");
+		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangOneHand");
+		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFingers");
+		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangAboutToFall");
+		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFalling");
+
+		new Handle:event = CreateEvent("revive_success");
+		SetEventInt(event, "userid", GetClientUserId(client));
+		SetEventInt(event, "subject", GetClientUserId(client));
+		SetEventBool(event, "lastlife", false);
+		SetEventBool(event, "ledge_hang", true);
+		FireEvent(event);
+	}
+
 	FakeClientCommand(client, "warp_to_start_area");
-	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangTwoHands");
-	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangOneHand");
-	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFingers");
-	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangAboutToFall");
-	ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFalling");
 
 	if (!flagsSet)
 	{
@@ -737,4 +751,10 @@ public Action:killParticle(Handle:timer, any:entity)
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
+}
+
+stock SetSurvivorTempHealth(client, Float:newOverheal)
+{
+	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
+	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", newOverheal);
 }
