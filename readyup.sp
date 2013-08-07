@@ -349,7 +349,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 {
 	if (inReadyUp)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		if (IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			if (GetConVarBool(l4d_ready_survivor_freeze))
 			{
