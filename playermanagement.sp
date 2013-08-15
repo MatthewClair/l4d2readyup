@@ -36,6 +36,7 @@ new Handle:z_max_player_zombies;
 
 new L4D2Team:pendingSwaps[MAXPLAYERS+1];
 new bool:blockVotes[MAXPLAYERS+1];
+new bool:isMapActive = false;
 
 new Handle:l4d_pm_supress_spectate;
 
@@ -64,6 +65,16 @@ public OnPluginStart()
 	l4d_pm_supress_spectate = CreateConVar("l4d_pm_supress_spectate", "0", "Don't print messages when players spectate", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 }
 
+public OnMapStart()
+{
+	isMapActive = true;
+}
+
+public OnMapEnd()
+{
+	isMapActive = false;
+}
+
 public Action:FixBots_Cmd(client, args)
 {
 	if (client != 0)
@@ -85,7 +96,8 @@ public survivor_limitChanged(Handle:convar, const String:oldValue[], const Strin
 
 public OnClientDisconnect_Post(client)
 {
-	FixBotCount();
+	if (isMapActive)
+		FixBotCount();
 }
 
 public Action:Spectate_Cmd(client, args)
