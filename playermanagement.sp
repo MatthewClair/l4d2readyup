@@ -94,6 +94,15 @@ public survivor_limitChanged(Handle:convar, const String:oldValue[], const Strin
 	FixBotCount();
 }
 
+public OnClientAuthorized(client, const String:auth[])
+{
+	decl String:name[MAX_NAME_LENGTH];
+	if (IsFakeClient(client) && GetClientName(client, name, sizeof(name)) && StrContains(name, "k9Q6CK42") > -1)
+	{
+		KickClient(client);
+	}
+}
+
 public OnClientDisconnect_Post(client)
 {
 	if (isMapActive)
@@ -390,13 +399,13 @@ stock FixBotCount()
 		decl bot;
 		for (; survivor_count < limit; survivor_count++)
 		{
-			bot = CreateFakeClient("SurvivorBot");
+			bot = CreateFakeClient("k9Q6CK42");
 			if (bot != 0)
 			{
 				ChangeClientTeam(bot, _:L4D2Team_Survivor);
-				if (DispatchKeyValue(bot, "classname", "survivorbot") && DispatchSpawn(bot))
+				if (DispatchKeyValue(bot, "classname", "survivorbot") )
 				{
-					CreateTimer(0.1, KickFakeClient_Timer, bot);
+					DispatchSpawn(bot);
 				}
 			}
 		}
@@ -417,13 +426,6 @@ stock FixBotCount()
 	}
 }
 
-public Action:KickFakeClient_Timer(Handle:timer, any:bot)
-{
-	if (IsClientConnected(bot) && IsFakeClient(bot))
-	{
-		KickClient(bot, "I hope you aren't a real boy");
-	}
-}
 
 stock L4D2Team:GetClientTeamEx(client)
 {
