@@ -45,8 +45,9 @@ public OnPluginStart()
 	LoadTranslations("common.phrases");
 
 	RegAdminCmd("sm_swap", Swap_Cmd, ADMFLAG_KICK, "sm_swap <player1> [player2] ... [playerN] - swap all listed players to opposite teams");
-	RegAdminCmd("sm_swapto", SwapTo_Cmd, ADMFLAG_KICK, "sm_swapto [force] <teamnum> <player1> [player2] ... [playerN] - swap all listed players to <teamnum> (1,2, or 3)");
+	RegAdminCmd("sm_swapto", SwapTo_Cmd, ADMFLAG_KICK, "sm_swapto [force] <teamnum> <player1> [player2] ... [playerN] - swap all listed players to <teamnum> (1, 2 or 3)");
 	RegAdminCmd("sm_swapteams", SwapTeams_Cmd, ADMFLAG_KICK, "sm_swapteams - swap the players between both teams");
+	RegAdminCmd("sm_swapuserto", SwapUserTo_Cmd, ADMFLAG_KICK, "sm_swapuser <userid1> [userid2] ... [useridN] - swap all players of listed userid's to <teamnum> (1, 2 or 3)");
 	RegAdminCmd("sm_fixbots", FixBots_Cmd, ADMFLAG_BAN, "sm_fixbots - Spawns survivor bots to match survivor_limit");
 	RegConsoleCmd("sm_spectate", Spectate_Cmd, "Moves you to the spectator team");
 	RegConsoleCmd("sm_spec", Spectate_Cmd, "Moves you to the spectator team");
@@ -257,6 +258,50 @@ public Action:SwapTo_Cmd(client, args)
 			{
 				pendingSwaps[target] = team;
 			}
+		}
+	}
+
+	ApplySwaps(client, force);
+
+	return Plugin_Handled;
+}
+
+public Action:SwapUserTo_Cmd(client, args)
+{
+	if (args < 2)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_swapuserto <teamnum> <userid1> <userid2> ... <useridN>\n%d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
+		ReplyToCommand(client, "[SM] Usage: sm_swapuserto force <teamnum> <userid1> <userid2> ... <playerN>\n%d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
+		return Plugin_Handled;
+	}
+
+	decl String:argbuf[MAX_NAME_LENGTH];
+	new bool:force = false;
+
+	GetCmdArg(1, argbuf, sizeof(argbuf));
+	if (StrEqual(argbuf, "force"))
+	{
+		force = true;
+		GetCmdArg(2, argbuf, sizeof(argbuf));
+	}
+
+	new L4D2Team:team = L4D2Team:StringToInt(argbuf);
+	if (team < L4D2Team_Spectator || team > L4D2Team_Infected)
+	{
+		ReplyToCommand(client, "[SM] Valid teams: %d = Spectators, %d = Survivors, %d = Infected", L4D2Team_Spectator, L4D2Team_Survivor, L4D2Team_Infected);
+		return Plugin_Handled;
+	}
+
+	decl target;
+
+	for (new i = force?3:2; i <= args; i++)
+	{
+		GetCmdArg(i, argbuf, sizeof(argbuf));
+
+		target = GetClientOfUserId(StringToInt(argbuf));
+		if(target > 0 && IsClientInGame(target))
+		{
+			pendingSwaps[target] = team;
 		}
 	}
 
