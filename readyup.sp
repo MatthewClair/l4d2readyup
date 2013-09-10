@@ -76,6 +76,7 @@ public OnPluginStart()
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
+	HookEvent("player_team", PlayerTeam_Event);
 
 	casterTrie = CreateTrie();
 
@@ -392,6 +393,17 @@ public Action:Return_Cmd(client, args)
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitiateReadyUp();
+}
+
+public PlayerTeam_Event(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new L4D2Team:oldteam = L4D2Team:GetEventInt(event, "oldteam");
+	new L4D2Team:team = L4D2Team:GetEventInt(event, "team");
+	if (oldteam == L4D2Team_Survivor || oldteam == L4D2Team_Infected ||
+			team == L4D2Team_Survivor || team == L4D2Team_Infected)
+	{
+		CancelFullReady();
+	}
 }
 
 #if DEBUG
