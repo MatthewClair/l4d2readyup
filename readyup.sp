@@ -592,48 +592,36 @@ InitiateLive()
 
 ReturnPlayerToSaferoom(client, bool:flagsSet = true)
 {
-	new flags;
+	new warp_flags;
+	new give_flags;
 	if (!flagsSet)
 	{
-		flags = GetCommandFlags("warp_to_start_area");
-		SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+		warp_flags = GetCommandFlags("warp_to_start_area");
+		SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
+		give_flags = GetCommandFlags("give");
+		SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 	}
 
 	if (GetEntProp(client, Prop_Send, "m_isHangingFromLedge"))
 	{
-		SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
-		SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
-		SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
-		SetEntProp(client, Prop_Send, "m_iHealth", L4D2Direct_GetPreIncapHealth(client));
-		SetEntProp(client, Prop_Send, "m_reviveOwner", 0);
-		SetEntProp(client, Prop_Send, "m_reviveTarget", 0);
-		SetSurvivorTempHealth(client, Float:L4D2Direct_GetPreIncapHealthBuffer(client));
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangTwoHands");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangOneHand");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFingers");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangAboutToFall");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFalling");
-
-		new Handle:event = CreateEvent("revive_success");
-		SetEventInt(event, "userid", GetClientUserId(client));
-		SetEventInt(event, "subject", GetClientUserId(client));
-		SetEventBool(event, "lastlife", false);
-		SetEventBool(event, "ledge_hang", true);
-		FireEvent(event);
+		FakeClientCommand(client, "give health");
 	}
 
 	FakeClientCommand(client, "warp_to_start_area");
 
 	if (!flagsSet)
 	{
-		SetCommandFlags("warp_to_start_area", flags);
+		SetCommandFlags("warp_to_start_area", warp_flags);
+		SetCommandFlags("give", give_flags);
 	}
 }
 
 ReturnTeamToSaferoom(bool:freezeStatus)
 {
-	new flags = GetCommandFlags("warp_to_start_area");
-	SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+	new warp_flags = GetCommandFlags("warp_to_start_area");
+	SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
+	new give_flags = GetCommandFlags("give");
+	SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
@@ -644,7 +632,8 @@ ReturnTeamToSaferoom(bool:freezeStatus)
 		}
 	}
 
-	SetCommandFlags("warp_to_start_area", flags);
+	SetCommandFlags("warp_to_start_area", warp_flags);
+	SetCommandFlags("give", give_flags);
 }
 
 bool:CheckFullReady()
@@ -766,10 +755,4 @@ public Action:killParticle(Handle:timer, any:entity)
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
-}
-
-stock SetSurvivorTempHealth(client, Float:newOverheal)
-{
-	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
-	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", newOverheal);
 }
