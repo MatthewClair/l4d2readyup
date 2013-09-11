@@ -355,7 +355,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 			{
 				if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
 				{
-					SetFrozen(client, true);
+					SetClientFrozen(client, true);
 				}
 			}
 			else
@@ -371,14 +371,16 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
 public SurvFreezeChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	ReturnTeamToSaferoom(GetConVarBool(convar));
+	ReturnTeamToSaferoom(L4D2Team_Survivor);
+	SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(convar));
+	
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		ReturnTeamToSaferoom(false);
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -570,7 +572,7 @@ InitiateLive()
 	inReadyUp = false;
 	inLiveCountdown = false;
 
-	ReturnTeamToSaferoom(false);
+	SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(l4d_ready_survivor_freeze));
 
 	SetConVarBool(director_no_specials, false);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
@@ -616,7 +618,7 @@ ReturnPlayerToSaferoom(client, bool:flagsSet = true)
 	}
 }
 
-ReturnTeamToSaferoom(bool:freezeStatus)
+ReturnTeamToSaferoom(L4D2Team:team)
 {
 	new warp_flags = GetCommandFlags("warp_to_start_area");
 	SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
@@ -627,13 +629,23 @@ ReturnTeamToSaferoom(bool:freezeStatus)
 	{
 		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
 		{
-			SetFrozen(client, freezeStatus);
 			ReturnPlayerToSaferoom(client, true);
 		}
 	}
 
 	SetCommandFlags("warp_to_start_area", warp_flags);
 	SetCommandFlags("give", give_flags);
+}
+
+SetTeamFrozen(L4D2Team:team, bool:freezeStatus)
+{
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
+		{
+			SetClientFrozen(client, freezeStatus);
+		}
+	}
 }
 
 bool:CheckFullReady()
@@ -662,6 +674,8 @@ InitiateLiveCountdown()
 {
 	if (readyCountdownTimer == INVALID_HANDLE)
 	{
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
+		SetTeamFrozen(L4D2Team_Survivor, true);
 		PrintHintTextToAll("Going live!\nSay !unready to cancel");
 		inLiveCountdown = true;
 		readyDelay = 5;
@@ -689,6 +703,7 @@ CancelFullReady()
 {
 	if (readyCountdownTimer != INVALID_HANDLE)
 	{
+		SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(l4d_ready_survivor_freeze));
 		inLiveCountdown = false;
 		CloseHandle(readyCountdownTimer);
 		readyCountdownTimer = INVALID_HANDLE;
@@ -696,7 +711,7 @@ CancelFullReady()
 	}
 }
 
-stock SetFrozen(client, freeze)
+stock SetClientFrozen(client, freeze)
 {
 	SetEntityMoveType(client, freeze ? MOVETYPE_NONE : MOVETYPE_WALK);
 }
