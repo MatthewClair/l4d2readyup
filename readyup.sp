@@ -627,7 +627,7 @@ ReturnTeamToSaferoom(L4D2Team:team)
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
 		{
 			ReturnPlayerToSaferoom(client, true);
 		}
