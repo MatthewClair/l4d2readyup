@@ -120,6 +120,7 @@ public OnMapStart()
 	{
 		blockSecretSpam[client] = false;
 	}
+	readyCountdownTimer = INVALID_HANDLE;
 }
 
 /* This ensures all cvars are reset if the map is changed during ready-up */
