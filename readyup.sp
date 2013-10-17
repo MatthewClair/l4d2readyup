@@ -7,6 +7,7 @@
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
+#define MAXSOUNDS 5
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -55,6 +56,15 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
+new String:CountdownSound[MAXSOUNDS][]=
+{
+	"/npc/moustachio/strengthattract01.wav",
+	"/npc/moustachio/strengthattract02.wav",
+	"/npc/moustachio/strengthattract05.wav",
+	"/npc/moustachio/strengthattract06.wav",
+	"/npc/moustachio/strengthattract09.wav"
+};
+
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
@@ -76,6 +86,7 @@ public OnPluginStart()
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
+	HookEvent("player_team", PlayerTeam_Event);
 
 	casterTrie = CreateTrie();
 
@@ -101,7 +112,6 @@ public OnPluginStart()
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_initlive", InitLive_Cmd, ADMFLAG_ROOT);
-	RegAdminCmd("sm_findsaferoom", FindSaferoom_Cmd, ADMFLAG_ROOT);
 #endif
 
 	LoadTranslations("common.phrases");
@@ -110,24 +120,30 @@ public OnPluginStart()
 public OnPluginEnd()
 {
 	if (inReadyUp)
-		InitiateLive();
+		InitiateLive(false);
 }
 
 public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
+	PrecacheSound("buttons/blip1.wav");
+	for(new i=0; i<sizeof(CountdownSound); i++)
+	{
+		PrecacheSound(CountdownSound[i],true);
+	}
 	for (new client = 1; client <= MAXPLAYERS; client++)
 	{
 		blockSecretSpam[client] = false;
 	}
+	readyCountdownTimer = INVALID_HANDLE;
 }
 
 /* This ensures all cvars are reset if the map is changed during ready-up */
 public OnMapEnd()
 {
 	if (inReadyUp)
-		InitiateLive();
+		InitiateLive(false);
 }
 
 public OnClientDisconnect(client)
@@ -184,7 +200,7 @@ stock bool:IsIDCaster(const String:AuthID[])
 
 public Action:Caster_Cmd(client, args)
 {
-	if(args < 1)
+	if (args < 1)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
 		return Plugin_Handled;
@@ -231,7 +247,7 @@ public Action:NotCasting_Cmd(client, args)
 {
 	decl String:buffer[64];
 	
-	if(args < 1) // If no target is specified
+	if (args < 1) // If no target is specified
 	{
 		GetClientAuthString(client, buffer, sizeof(buffer));
 		RemoveFromTrie(casterTrie, buffer);
@@ -243,12 +259,12 @@ public Action:NotCasting_Cmd(client, args)
 		id = GetUserAdmin(client);
 		new bool:hasFlag = false;
 		
-		if(id != INVALID_ADMIN_ID)
+		if (id != INVALID_ADMIN_ID)
 		{
 			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
 		}
 		
-		if(!hasFlag) 
+		if (!hasFlag)
 		{
 			ReplyToCommand(client, "Only admins can remove other casters. Use sm_notcasting without arguments if you wish to remove yourself.");
 			return Plugin_Handled;
@@ -356,7 +372,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 			{
 				if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
 				{
-					SetFrozen(client, true);
+					SetClientFrozen(client, true);
 				}
 			}
 			else
@@ -372,14 +388,16 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
 public SurvFreezeChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	ReturnTeamToSaferoom(GetConVarBool(convar));
+	ReturnTeamToSaferoom(L4D2Team_Survivor);
+	SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(convar));
+	
 }
 
 public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 {
 	if (inReadyUp)
 	{
-		ReturnTeamToSaferoom(false);
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -394,6 +412,17 @@ public Action:Return_Cmd(client, args)
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	InitiateReadyUp();
+}
+
+public PlayerTeam_Event(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new L4D2Team:oldteam = L4D2Team:GetEventInt(event, "oldteam");
+	new L4D2Team:team = L4D2Team:GetEventInt(event, "team");
+	if (oldteam == L4D2Team_Survivor || oldteam == L4D2Team_Infected ||
+			team == L4D2Team_Survivor || team == L4D2Team_Infected)
+	{
+		CancelFullReady();
+	}
 }
 
 #if DEBUG
@@ -446,7 +475,7 @@ UpdatePanel()
 	decl dummy;
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && !IsFakeClient(client))
+		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
 			++playerCount;
 			GetClientName(client, nameBuf, sizeof(nameBuf));
@@ -521,7 +550,7 @@ UpdatePanel()
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
+		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
 		{
 			SendPanelToClient(menuPanel, client, DummyHandler, 1);
 		}
@@ -555,12 +584,12 @@ InitiateReadyUp()
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
 }
 
-InitiateLive()
+InitiateLive(bool:real = true)
 {
 	inReadyUp = false;
 	inLiveCountdown = false;
 
-	ReturnTeamToSaferoom(false);
+	SetTeamFrozen(L4D2Team_Survivor, false);
 
 	SetConVarBool(director_no_specials, false);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
@@ -576,63 +605,67 @@ InitiateLive()
 	}
 
 	footerCounter = 0;
-	Call_StartForward(liveForward);
-	Call_Finish();
+	if (real)
+	{
+		Call_StartForward(liveForward);
+		Call_Finish();
+	}
 }
 
 ReturnPlayerToSaferoom(client, bool:flagsSet = true)
 {
-	new flags;
+	new warp_flags;
+	new give_flags;
 	if (!flagsSet)
 	{
-		flags = GetCommandFlags("warp_to_start_area");
-		SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+		warp_flags = GetCommandFlags("warp_to_start_area");
+		SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
+		give_flags = GetCommandFlags("give");
+		SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 	}
 
 	if (GetEntProp(client, Prop_Send, "m_isHangingFromLedge"))
 	{
-		SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
-		SetEntProp(client, Prop_Send, "m_isHangingFromLedge", 0);
-		SetEntProp(client, Prop_Send, "m_isFallingFromLedge", 0);
-		SetEntProp(client, Prop_Send, "m_iHealth", L4D2Direct_GetPreIncapHealth(client));
-		SetSurvivorTempHealth(client, Float:L4D2Direct_GetPreIncapHealthBuffer(client));
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangTwoHands");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangOneHand");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFingers");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangAboutToFall");
-		ClientCommand(client, "music_dynamic_stop_playing Event.LedgeHangFalling");
-
-		new Handle:event = CreateEvent("revive_success");
-		SetEventInt(event, "userid", GetClientUserId(client));
-		SetEventInt(event, "subject", GetClientUserId(client));
-		SetEventBool(event, "lastlife", false);
-		SetEventBool(event, "ledge_hang", true);
-		FireEvent(event);
+		FakeClientCommand(client, "give health");
 	}
 
 	FakeClientCommand(client, "warp_to_start_area");
 
 	if (!flagsSet)
 	{
-		SetCommandFlags("warp_to_start_area", flags);
+		SetCommandFlags("warp_to_start_area", warp_flags);
+		SetCommandFlags("give", give_flags);
 	}
 }
 
-ReturnTeamToSaferoom(bool:freezeStatus)
+ReturnTeamToSaferoom(L4D2Team:team)
 {
-	new flags = GetCommandFlags("warp_to_start_area");
-	SetCommandFlags("warp_to_start_area", flags & ~FCVAR_CHEAT);
+	new warp_flags = GetCommandFlags("warp_to_start_area");
+	SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
+	new give_flags = GetCommandFlags("give");
+	SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
-		if(IsClientInGame(client) && L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+		if (IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
 		{
-			SetFrozen(client, freezeStatus);
 			ReturnPlayerToSaferoom(client, true);
 		}
 	}
 
-	SetCommandFlags("warp_to_start_area", flags);
+	SetCommandFlags("warp_to_start_area", warp_flags);
+	SetCommandFlags("give", give_flags);
+}
+
+SetTeamFrozen(L4D2Team:team, bool:freezeStatus)
+{
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && L4D2Team:GetClientTeam(client) == team)
+		{
+			SetClientFrozen(client, freezeStatus);
+		}
+	}
 }
 
 bool:CheckFullReady()
@@ -648,7 +681,7 @@ bool:CheckFullReady()
 				casterCount++;
 			}
 
-			if((IsPlayer(client) || IsClientCaster(client)) && isPlayerReady[client])
+			if ((IsPlayer(client) || IsClientCaster(client)) && isPlayerReady[client])
 			{
 				readyCount++;
 			}
@@ -661,6 +694,8 @@ InitiateLiveCountdown()
 {
 	if (readyCountdownTimer == INVALID_HANDLE)
 	{
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
+		SetTeamFrozen(L4D2Team_Survivor, true);
 		PrintHintTextToAll("Going live!\nSay !unready to cancel");
 		inLiveCountdown = true;
 		readyDelay = 5;
@@ -673,12 +708,15 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	if (readyDelay == 0)
 	{
 		PrintHintTextToAll("Round is live!");
+		EmitSoundToAll(CountdownSound[GetRandomInt(0,MAXSOUNDS-1)]);
 		InitiateLive();
+		readyCountdownTimer = INVALID_HANDLE;
 		return Plugin_Stop;
 	}
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
+		EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		readyDelay--;
 	}
 	return Plugin_Continue;
@@ -688,6 +726,7 @@ CancelFullReady()
 {
 	if (readyCountdownTimer != INVALID_HANDLE)
 	{
+		SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(l4d_ready_survivor_freeze));
 		inLiveCountdown = false;
 		CloseHandle(readyCountdownTimer);
 		readyCountdownTimer = INVALID_HANDLE;
@@ -695,7 +734,7 @@ CancelFullReady()
 	}
 }
 
-stock SetFrozen(client, freeze)
+stock SetClientFrozen(client, freeze)
 {
 	SetEntityMoveType(client, freeze ? MOVETYPE_NONE : MOVETYPE_WALK);
 }
@@ -724,7 +763,7 @@ stock GetTeamHumanCount(L4D2Team:team)
 stock DoSecrets(client)
 {
 	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
-	if (GetClientTeam(client) == 2 && !blockSecretSpam[client])
+	if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor && !blockSecretSpam[client])
 	{
 		new particle = CreateEntityByName("info_particle_system");
 		decl Float:pos[3];
@@ -750,14 +789,8 @@ public Action:SecretSpamDelay(Handle:timer, any:client)
 
 public Action:killParticle(Handle:timer, any:entity)
 {
-	if(entity > 0 && IsValidEntity(entity) && IsValidEdict(entity))
+	if (entity > 0 && IsValidEntity(entity) && IsValidEdict(entity))
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
-}
-
-stock SetSurvivorTempHealth(client, Float:newOverheal)
-{
-	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
-	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", newOverheal);
 }
