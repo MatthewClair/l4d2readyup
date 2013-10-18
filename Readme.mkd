@@ -122,7 +122,7 @@ Setting this Cvar to 1 will stop the plugin from printing "Player has become a s
 
     sm_swap
     sm_swapto
-	sm_fixbots
+    sm_fixbots
     sm_swapteams
     sm_spectate
     sm_spec
@@ -130,5 +130,5 @@ Setting this Cvar to 1 will stop the plugin from printing "Player has become a s
 
 `sm_swap` swaps listed players to their opposite team.  This has no effect on spectators.  It is now able to take `@all`, `@infected`, except `@me` and `@!me`.  `sm_swapteams` swaps all human players on the infected and survivor teams.  `sm_swapto` functions as before but has a slightly different syntax to allow for a much simpler implementation in code.  Now the team must be specified before the players.  Ex `sm_swapto 2 CanadaRox` would swap the player CanadaRox to the survivor team (if there is room).  `sm_spectate`, `sm_spec`, and `sm_s` are all variations of the standard spectate command which moves the issuing player to the spectator team. `sm_fixbots` is used to manually correct the number of bots.  Normally when someone disconnects or the player limit changes, the number of bots will be corrected but this command exists in case the bots are not correctly updated.
 
-##Survivor_Limit Note
+##Survivor\_Limit Note
 Changing `survivor_limit` without restarting the map afterwards may have issues.  Increasing the limit should work as long as survivors have not left the saferoom.  Decreasing the limit can result in some players not gaining points correctly.  If you decide to change `survivor_limit` without restarting the map you are responsible for manually fixing issues such as duplicate bots.
