@@ -1,5 +1,5 @@
 #include <sourcemod>
-#include "readyup.inc"
+#include <readyup>
 
 public OnPluginStart()
 {

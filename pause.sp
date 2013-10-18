@@ -3,7 +3,7 @@
 #include <sourcemod>
 #include <colors>
 #undef REQUIRE_PLUGIN
-#include "readyup"
+#include <readyup>
 
 public Plugin:myinfo =
 {
