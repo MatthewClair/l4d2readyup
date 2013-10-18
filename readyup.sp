@@ -588,6 +588,12 @@ InitiateLive(bool:real = true)
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
+	for (new i = 0; i < 4; i++)
+	{
+		GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
+				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
+	}
+
 	for (new i = 0; i < MAX_FOOTERS; i++)
 	{
 		readyFooter[i] = "";
