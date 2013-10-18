@@ -389,7 +389,12 @@ public Action:L4D_OnFirstSurvivorLeftSafeArea(client)
 
 public Action:Return_Cmd(client, args)
 {
-	ReturnPlayerToSaferoom(client, false);
+	if (client > 0
+			&& inReadyUp
+			&& L4D2Team:GetClientTeam(client) == L4D2Team_Survivor)
+	{
+		ReturnPlayerToSaferoom(client, false);
+	}
 	return Plugin_Handled;
 }
 
