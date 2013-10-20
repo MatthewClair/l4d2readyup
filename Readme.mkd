@@ -102,13 +102,14 @@ When a player tries to pause the game during a pick-up, the pause will be automa
     sm_unpause
     sm_ready
     sm_unready
+    sm_toggleready
     sm_forcepause
     sm_forceunpause
 
-`sm_pause` is used to initiate a pause as normal.  `sm_unpause` and `sm_ready` are the same command and mark your team as ready for an unpause.  `sm_unready` marks your team as not ready. `sm_forcepause` creates an admin pause which only other admins can unpause with `sm_forceunpause`.  `sm_forceunpause` can unpause either normal or admin pauses without requiring the teams to be ready.
+`sm_pause` is used to initiate a pause as normal.  `sm_unpause` and `sm_ready` are the same command and mark your team as ready for an unpause.  `sm_unready` marks your team as not ready. `sm_toggleready` toggles your team's ready status.  `sm_forcepause` creates an admin pause which only other admins can unpause with `sm_forceunpause`.  `sm_forceunpause` can unpause either normal or admin pauses without requiring the teams to be ready.
 
 #Player Management
-This is probably one of the most confusing parts of `l4dready` due to its use of timers and retries.  This plugin works mostly as it does before but with a slightly different syntax for `sm_swapto` (see Commands).  Whenever a swap is to be performed, all players pending a swap will first be moved to the spectator team.  If they cannot be swapped to their target team they will remain on the spectator team.  The plugin will attempt to spawn extra bots when changing `survivor_limit` but this isn't fully supported (see Survivor_Limit Note).
+This is probably one of the most confusing parts of `l4dready` due to its use of timers and retries.  This plugin works mostly as it does before but with a slightly different syntax for `sm_swapto` (see Commands).  Whenever a swap is to be performed, all players pending a swap will first be moved to the spectator team.  If they cannot be swapped to their target team they will remain on the spectator team.  The plugin will attempt to spawn extra bots when changing `survivor_limit` but this isn't fully supported (see Survivor\_Limit Note).
 
 ##Console Variables (Cvars)
 

@@ -10,7 +10,7 @@ public Plugin:myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox",
 	description = "Adds pause functionality without breaking pauses",
-	version = "6",
+	version = "7",
 	url = ""
 };
 
@@ -62,6 +62,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_unpause", Unpause_Cmd, "Marks your team as ready for an unpause");
 	RegConsoleCmd("sm_ready", Unpause_Cmd, "Marks your team as ready for an unpause");
 	RegConsoleCmd("sm_unready", Unready_Cmd, "Marks your team as ready for an unpause");
+	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggles your team's ready status");
 
 	RegAdminCmd("sm_forcepause", ForcePause_Cmd, ADMFLAG_BAN, "Pauses the game and only allows admins to unpause");
 	RegAdminCmd("sm_forceunpause", ForceUnpause_Cmd, ADMFLAG_BAN, "Unpauses the game regardless of team ready status.  Must be used to unpause admin pauses");
@@ -156,7 +157,7 @@ public Action:Unpause_Cmd(client, args)
 			PrintToChatAll("[SM] %N marked %s as ready", client, teamString[L4D2Team:GetClientTeam(client)]);
 		}
 		teamReady[clientTeam] = true;
-		if (CheckFullReady())
+		if (!adminPause && CheckFullReady())
 		{
 			InitiateLiveCountdown();
 		}
@@ -166,7 +167,7 @@ public Action:Unpause_Cmd(client, args)
 
 public Action:Unready_Cmd(client, args)
 {
-	if (isPaused && IsPlayer(client) && !adminPause)
+	if (isPaused && IsPlayer(client))
 	{
 		new L4D2Team:clientTeam = L4D2Team:GetClientTeam(client);
 		if (teamReady[clientTeam])
@@ -175,6 +176,25 @@ public Action:Unready_Cmd(client, args)
 		}
 		teamReady[clientTeam] = false;
 		CancelFullReady(client);
+	}
+	return Plugin_Handled;
+}
+
+public Action:ToggleReady_Cmd(client, args)
+{
+	if (isPaused && IsPlayer(client))
+	{
+		new L4D2Team:clientTeam = L4D2Team:GetClientTeam(client);
+		teamReady[clientTeam] = !teamReady[clientTeam];
+		PrintToChatAll("[SM] %N marked %s as %sready", client, teamString[L4D2Team:GetClientTeam(client)], teamReady[clientTeam] ? "" : "not ");
+		if (!adminPause && teamReady[clientTeam] && CheckFullReady())
+		{
+			InitiateLiveCountdown();
+		}
+		else if (!teamReady[clientTeam])
+		{
+			CancelFullReady(client);
+		}
 	}
 	return Plugin_Handled;
 }
