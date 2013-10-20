@@ -7,7 +7,7 @@ This is my attempt at Unixing ready-up.  The functionality of ready-up can prima
 * Pause
 * Player management
 
-Connect and disconnect messages have not been implemented but will likely be included in their own fourth plugin.
+Connect and disconnect messages have not been implemented but can be found in other plugins such as [Connect Announce](https://forums.alliedmods.net/showthread.php?p=683858).
 
 #Ready-up
 The plugin `readyup.sp` is my implementation of ready-up.  It removes a lot of configuration options included in `l4dready` while keeping all of the useful functions and adding more.
