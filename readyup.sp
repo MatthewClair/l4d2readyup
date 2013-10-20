@@ -275,7 +275,10 @@ public Action:NotCasting_Cmd(client, args)
 
 public Action:ForceStart_Cmd(client, args)
 {
-	InitiateLiveCountdown();
+	if (inReadyUp)
+	{
+		InitiateLiveCountdown();
+	}
 	return Plugin_Handled;
 }
 
