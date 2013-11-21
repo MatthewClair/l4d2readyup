@@ -7,6 +7,7 @@
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
+#define MAXSOUNDS 5
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -55,6 +56,15 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
+new String:CountdownSound[MAXSOUNDS][]=
+{
+	"/npc/moustachio/strengthattract01.wav",
+	"/npc/moustachio/strengthattract02.wav",
+	"/npc/moustachio/strengthattract05.wav",
+	"/npc/moustachio/strengthattract06.wav",
+	"/npc/moustachio/strengthattract09.wav"
+};
+
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
@@ -88,6 +98,7 @@ public OnPluginStart()
 
 	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
 	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
+	RegAdminCmd("sm_fs", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
 	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd, "Every player has a different secret number between 0-1023");
 	RegConsoleCmd("sm_hide", Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
 	RegConsoleCmd("sm_show", Show_Cmd, "Shows a hidden ready-up panel");
@@ -116,6 +127,11 @@ public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
+	PrecacheSound("buttons/blip1.wav");
+	for(new i=0; i<sizeof(CountdownSound); i++)
+	{
+		PrecacheSound(CountdownSound[i],true);
+	}
 	for (new client = 1; client <= MAXPLAYERS; client++)
 	{
 		blockSecretSpam[client] = false;
@@ -706,6 +722,7 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	if (readyDelay == 0)
 	{
 		PrintHintTextToAll("Round is live!");
+		EmitSoundToAll(CountdownSound[GetRandomInt(0,MAXSOUNDS-1)]);
 		InitiateLive();
 		readyCountdownTimer = INVALID_HANDLE;
 		return Plugin_Stop;
@@ -713,6 +730,7 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
+		EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		readyDelay--;
 	}
 	return Plugin_Continue;
