@@ -357,6 +357,7 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	else
 	{
 		PrintToChatAll("Live in: %d", readyDelay);
+		EmitSoundToAll("buttons/blip1.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		readyDelay--;
 	}
 	return Plugin_Continue;
