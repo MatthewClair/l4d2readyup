@@ -130,7 +130,7 @@ public OnMapStart()
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
-	for (new i = 0; i <= MAXPLAYERS; i++)
+	for (new i = 0; i <= MAXSOUNDS; i++)
 	{
 		PrecacheSound(CountdownSound[i],true);
 	}
