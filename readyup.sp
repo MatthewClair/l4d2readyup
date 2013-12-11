@@ -117,7 +117,6 @@ public OnPluginStart()
 #endif
 
 	LoadTranslations("common.phrases");
-	
 }
 
 public OnPluginEnd()
