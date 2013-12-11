@@ -44,6 +44,7 @@ new bool:readyUpIsAvailable;
 new Handle:pauseForward;
 new Handle:unpauseForward;
 new Handle:deferredPauseTimer;
+new Handle:l4d_ready_delay;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -75,6 +76,7 @@ public OnPluginStart()
 	sv_noclipduringpause = FindConVar("sv_noclipduringpause");
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_PLUGIN, true, 0.0);
+	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
 
 	HookEvent("round_end", RoundEnd_Event, EventHookMode_PostNoCopy);
 }
@@ -341,7 +343,7 @@ InitiateLiveCountdown()
 	if (readyCountdownTimer == INVALID_HANDLE)
 	{
 		PrintToChatAll("Going live!\nSay !unready to cancel");
-		readyDelay = 5;
+		readyDelay = GetConVarInt(l4d_ready_delay);
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
