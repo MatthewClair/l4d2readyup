@@ -85,10 +85,10 @@ public OnPluginStart()
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_sounds = CreateConVar("l4d_ready_sounds", "1", "Enable blips & chuckle during countdown");
-    HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
+	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
-    HookEvent("round_start", RoundStart_Event);
-    HookEvent("player_team", PlayerTeam_Event);
+	HookEvent("round_start", RoundStart_Event);
+	HookEvent("player_team", PlayerTeam_Event);
 
 	casterTrie = CreateTrie();
 
