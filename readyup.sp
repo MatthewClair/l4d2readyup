@@ -738,7 +738,7 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
 		if (GetConVarBool(l4d_ready_sounds))
 		{
-			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)], _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		}
 		readyDelay--;
 	}
