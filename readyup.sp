@@ -35,8 +35,7 @@ new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
 new Handle:l4d_ready_max_players;
-new Handle:	hEnabled;
-new bool:	bEnabled;
+new Handle:l4d_ready_sounds;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -85,8 +84,9 @@ public OnPluginStart()
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
+	l4d_ready_sounds = CreateConVar("l4d_ready_sounds", "1", "Enable blips & chuckle during countdown");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
-
+	
 	HookEvent("round_start", RoundStart_Event);
 	HookEvent("player_team", PlayerTeam_Event);
 
@@ -117,10 +117,7 @@ public OnPluginStart()
 #endif
 
 	LoadTranslations("common.phrases");
-
-	hEnabled = CreateConVar("l4d_ready_sounds_enabled", "1", "Enable blips & chuckle during countdown");
-	HookConVarChange(hEnabled, Enabled_Changed);
-	bEnabled = GetConVarBool(hEnabled);
+	
 }
 
 public OnPluginEnd()
@@ -134,7 +131,7 @@ public OnMapStart()
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
-	for(new i=0; i<sizeof(CountdownSound); i++)
+	for (new i = 0; i <= MAXPLAYERS; i++)
 	{
 		PrecacheSound(CountdownSound[i],true);
 	}
@@ -718,38 +715,25 @@ InitiateLiveCountdown()
 		SetTeamFrozen(L4D2Team_Survivor, true);
 		PrintHintTextToAll("Going live!\nSay !unready to cancel");
 		inLiveCountdown = true;
-		readyDelay = 5;
+		readyDelay = 3;
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
 public Action:ReadyCountdownDelay_Timer(Handle:timer)
 {
-	if (readyDelay == 0 && bEnabled == true)
-	{
-		PrintHintTextToAll("Round is live!");
-		EmitSoundToAll(CountdownSound[GetRandomInt(0,MAXSOUNDS-1)]);
-		InitiateLive();
-		readyCountdownTimer = INVALID_HANDLE;
-		return Plugin_Stop;
-	}
-	else if (readyDelay == 0)
-	{
+	if (!readyDelay) 
+	{ 		
 		PrintHintTextToAll("Round is live!");
 		InitiateLive();
 		readyCountdownTimer = INVALID_HANDLE;
+		if (GetConVarBool(l4d_ready_sounds)) EmitSoundToAll(CountdownSound[GetRandomInt(0,MAXSOUNDS-1)]);
 		return Plugin_Stop;
-	}
-
-	else if (bEnabled == true)
-	{
-		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
-		EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-		readyDelay--;
 	}
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
+		if (GetConVarBool(l4d_ready_sounds)) EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		readyDelay--;
 	}
 	return Plugin_Continue;
@@ -826,9 +810,4 @@ public Action:killParticle(Handle:timer, any:entity)
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
-}
-
-public Enabled_Changed(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	bEnabled = GetConVarBool(hEnabled);
 }
