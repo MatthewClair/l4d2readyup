@@ -30,6 +30,7 @@ native bool:IsClientCaster(client);
 /**
  * If this Steam ID is a registered caster or not
  *
+ * @param           String containing the user's auth id
  * @return          True if this is a registered caster
  */
 native bool:IsIDCaster(const String:AuthID[]);
