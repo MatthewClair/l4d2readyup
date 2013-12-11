@@ -7,7 +7,7 @@
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
-#define MAXSOUNDS 5
+#define MAX_SOUNDS 5
 
 #define SOUND "/level/gnomeftw.wav"
 
@@ -18,7 +18,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "6",
+	version = "8",
 	url = ""
 };
 
@@ -35,6 +35,7 @@ new Handle:l4d_ready_disable_spawns;
 new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
 new Handle:l4d_ready_max_players;
+new Handle:l4d_ready_delay;
 new Handle:l4d_ready_sounds;
 
 // Game Cvars
@@ -57,7 +58,7 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
-new String:CountdownSound[MAXSOUNDS][]=
+new String:countdownSound[MAX_SOUNDS][]=
 {
 	"/npc/moustachio/strengthattract01.wav",
 	"/npc/moustachio/strengthattract02.wav",
@@ -84,6 +85,7 @@ public OnPluginStart()
 	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
+	l4d_ready_delay = CreateConVar("l4d_ready_delay", "3", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
 	l4d_ready_sounds = CreateConVar("l4d_ready_sounds", "1", "Enable blips & chuckle during countdown");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
@@ -100,7 +102,6 @@ public OnPluginStart()
 
 	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
 	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
-	RegAdminCmd("sm_fs", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
 	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd, "Every player has a different secret number between 0-1023");
 	RegConsoleCmd("sm_hide", Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
 	RegConsoleCmd("sm_show", Show_Cmd, "Shows a hidden ready-up panel");
@@ -130,9 +131,9 @@ public OnMapStart()
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
-	for (new i = 0; i <= MAXSOUNDS; i++)
+	for (new i = 0; i < MAX_SOUNDS; i++)
 	{
-		PrecacheSound(CountdownSound[i],true);
+		PrecacheSound(countdownSound[i]);
 	}
 	for (new client = 1; client <= MAXPLAYERS; client++)
 	{
@@ -714,25 +715,31 @@ InitiateLiveCountdown()
 		SetTeamFrozen(L4D2Team_Survivor, true);
 		PrintHintTextToAll("Going live!\nSay !unready to cancel");
 		inLiveCountdown = true;
-		readyDelay = 3;
+		readyDelay = GetConVarInt(l4d_ready_delay);
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
 public Action:ReadyCountdownDelay_Timer(Handle:timer)
 {
-	if (!readyDelay) 
-	{ 		
+	if (readyDelay == 0)
+	{
 		PrintHintTextToAll("Round is live!");
 		InitiateLive();
 		readyCountdownTimer = INVALID_HANDLE;
-		if (GetConVarBool(l4d_ready_sounds)) EmitSoundToAll(CountdownSound[GetRandomInt(0,MAXSOUNDS-1)]);
+		if (GetConVarBool(l4d_ready_sounds))
+		{
+			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)], _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		}
 		return Plugin_Stop;
 	}
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
-		if (GetConVarBool(l4d_ready_sounds)) EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		if (GetConVarBool(l4d_ready_sounds))
+		{
+			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		}
 		readyDelay--;
 	}
 	return Plugin_Continue;
