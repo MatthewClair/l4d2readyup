@@ -41,7 +41,7 @@ This sets the number of countdown steps to show before the round going live.  Th
 
     l4d_ready_sounds 1 // Enable sounds to notify players the round is going live if they aren't watching
 
-This enables sounds being played during the countdown.  Number steps have a blip and the round going live has a Mustachio chuckle.
+This enables sounds being played during the countdown.  Number steps have a blip and the round going live has a Moustachio chuckle.
 
 The follow Cvars exist in `l4dready` but no longer exist (with a little blurb why for each Cvar):
 
