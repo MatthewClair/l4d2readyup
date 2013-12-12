@@ -99,13 +99,17 @@ This plugin deals only with pauses.  It also has a mini ready-up to prevent an u
 
 Pause now includes significantly less configuration Cvars.  The old Cvars were generally set to limits so high they could never be reached so they are no longer supported.
 
-    sm_pausedelay 0
+    sm_pausedelay 0 // The number of seconds to delay after sm_pause before pausing the game
 
 This is an additional delay between a player running `sm_pause` and the game actually pausing.  This can be used to prevent "tactical pauses".  The Cvar defaults to 0 which means no delay, or the usual instant pause.
 
-    l4d_ready_delay 5
+    l4d_ready_delay 5 // The number of seconds to count down before the round goes live
 
-This sets the number of countdown steps to show before the round going live.  The delay will always be at least one second long between the message saying the round is going live and the round is live.  This Cvar also applies to the ready-up plugin.
+This sets the number of countdown steps to show before the round going live.  The delay will always be at least one second long between the message saying the round is going live and the round is live.  This Cvar also applies to the pause plugin.
+
+    l4d_ready_sounds 1 // Enable sounds to notify players the round is going live if they aren't watching
+
+This enables sounds being played during the countdown.  Number steps have a blip and the round going live has a Moustachio chuckle.
 
 ##Incapped Player Pickups & Pauses
 When a player tries to pause the game during a pick-up, the pause will be automatically delayed until after the pickup ends.
