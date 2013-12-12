@@ -353,12 +353,20 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	if (readyDelay == 0)
 	{
 		PrintToChatAll("Round is live!");
+		if (GetConVarBool(l4d_ready_sounds))
+		{
+			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
+		}
 		Unpause();
 		return Plugin_Stop;
 	}
 	else
 	{
 		PrintToChatAll("Live in: %d", readyDelay);
+		if (GetConVarBool(l4d_ready_sounds))
+		{
+			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		}
 		readyDelay--;
 	}
 	return Plugin_Continue;
