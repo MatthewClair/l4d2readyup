@@ -435,7 +435,7 @@ public Action:TeamSay_Callback(client, const String:command[], argc)
 
 public Action:Unpause_Callback(client, const String:command[], argc)
 {
-	if (0 == client && isPaused)
+	if (isPaused)
 	{
 		return Plugin_Handled;
 	}
