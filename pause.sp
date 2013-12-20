@@ -2,8 +2,11 @@
 
 #include <sourcemod>
 #include <colors>
+#include <sdktools>
 #undef REQUIRE_PLUGIN
 #include <readyup>
+
+#define MAX_SOUNDS 5
 
 public Plugin:myinfo =
 {
@@ -45,6 +48,7 @@ new Handle:pauseForward;
 new Handle:unpauseForward;
 new Handle:deferredPauseTimer;
 new Handle:l4d_ready_delay;
+new Handle:l4d_ready_sounds;
 
 new String:countdownSound[MAX_SOUNDS][]=
 {
