@@ -6,8 +6,6 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define MAX_SOUNDS 5
-
 public Plugin:myinfo =
 {
 	name = "Pause plugin",
@@ -48,16 +46,7 @@ new Handle:pauseForward;
 new Handle:unpauseForward;
 new Handle:deferredPauseTimer;
 new Handle:l4d_ready_delay;
-new Handle:l4d_ready_sounds;
-
-new String:countdownSound[MAX_SOUNDS][]=
-{
-	"/npc/moustachio/strengthattract01.wav",
-	"/npc/moustachio/strengthattract02.wav",
-	"/npc/moustachio/strengthattract05.wav",
-	"/npc/moustachio/strengthattract06.wav",
-	"/npc/moustachio/strengthattract09.wav"
-};
+new Handle:l4d_ready_blips;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -90,7 +79,7 @@ public OnPluginStart()
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_PLUGIN, true, 0.0);
 	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
-	l4d_ready_sounds = CreateConVar("l4d_ready_sounds", "1", "Enable blips & chuckle during countdown");
+	l4d_ready_blips = CreateConVar("l4d_ready_blips", "1", "Enable beep on unpause");
 
 	HookEvent("round_end", RoundEnd_Event, EventHookMode_PostNoCopy);
 }
@@ -122,6 +111,11 @@ public OnClientPutInServer(client)
 		if (!IsFakeClient(client))
 			PrintToChatAll("\x01[SM] \x03%N \x01is now fully loaded in game", client);
 	}
+}
+
+public OnMapStart()
+{
+	PrecacheSound("buttons/blip2.wav");
 }
 
 public RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
@@ -367,9 +361,9 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	if (readyDelay == 0)
 	{
 		PrintToChatAll("Round is live!");
-		if (GetConVarBool(l4d_ready_sounds))
+		if (GetConVarBool(l4d_ready_blips))
 		{
-			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
+			CreateTimer(0.01, BlipDelay_Timer);
 		}
 		Unpause();
 		return Plugin_Stop;
@@ -377,13 +371,14 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	else
 	{
 		PrintToChatAll("Live in: %d", readyDelay);
-		if (GetConVarBool(l4d_ready_sounds))
-		{
-			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-		}
 		readyDelay--;
 	}
 	return Plugin_Continue;
+}
+
+public Action:BlipDelay_Timer(Handle:timer)
+{
+	EmitSoundToAll("buttons/blip2.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 }
 
 CancelFullReady(client)
