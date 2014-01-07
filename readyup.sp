@@ -36,7 +36,8 @@ new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
 new Handle:l4d_ready_max_players;
 new Handle:l4d_ready_delay;
-new Handle:l4d_ready_sounds;
+new Handle:l4d_ready_blips;
+new Handle:l4d_ready_chuckle;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -86,7 +87,8 @@ public OnPluginStart()
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
-	l4d_ready_sounds = CreateConVar("l4d_ready_sounds", "1", "Enable blips & chuckle during countdown");
+	l4d_ready_blips = CreateConVar("l4d_ready_blips", "1", "Enable blips during countdown");
+	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "1", "Enable chuckle during countdown");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -102,6 +104,7 @@ public OnPluginStart()
 
 	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
 	RegAdminCmd("sm_forcestart", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
+	RegAdminCmd("sm_fs", ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
 	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd, "Every player has a different secret number between 0-1023");
 	RegConsoleCmd("sm_hide", Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
 	RegConsoleCmd("sm_show", Show_Cmd, "Shows a hidden ready-up panel");
@@ -131,6 +134,7 @@ public OnMapStart()
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
+	PrecacheSound("buttons/blip2.wav");
 	for (new i = 0; i < MAX_SOUNDS; i++)
 	{
 		PrecacheSound(countdownSound[i]);
@@ -727,16 +731,17 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 		PrintHintTextToAll("Round is live!");
 		InitiateLive();
 		readyCountdownTimer = INVALID_HANDLE;
-		if (GetConVarBool(l4d_ready_sounds))
+		if (GetConVarBool(l4d_ready_chuckle))
 		{
 			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
 		}
+		else { EmitSoundToAll("buttons/blip2.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5); }
 		return Plugin_Stop;
 	}
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
-		if (GetConVarBool(l4d_ready_sounds))
+		if (GetConVarBool(l4d_ready_blips))
 		{
 			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		}

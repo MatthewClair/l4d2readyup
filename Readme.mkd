@@ -39,7 +39,8 @@ This Cvar limits the number of spectators to be shown on the ready-up panel.  If
 
 This sets the number of countdown steps to show before the round going live.  The delay will always be at least one second long between the message saying the round is going live and the round is live.  This Cvar also applies to the pause plugin.
 
-    l4d_ready_sounds 1 // Enable sounds to notify players the round is going live if they aren't watching
+    l4d_ready_blips 1 // Enable blip sounds during countdown to notify players if they aren't watching
+    l4d_ready_chuckle 1 // Enable a moustachio chuckle to notify players the round is going live if they aren't watching
 
 This enables sounds being played during the countdown.  Number steps have a blip and the round going live has a Moustachio chuckle.
 
