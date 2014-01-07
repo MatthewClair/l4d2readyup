@@ -134,6 +134,7 @@ public OnMapStart()
 	/* OnMapEnd needs this to work */
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
+	PrecacheSound("buttons/blip2.wav");
 	for (new i = 0; i < MAX_SOUNDS; i++)
 	{
 		PrecacheSound(countdownSound[i]);
@@ -734,6 +735,7 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 		{
 			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
 		}
+		else { EmitSoundToAll("buttons/blip2.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5); }
 		return Plugin_Stop;
 	}
 	else
