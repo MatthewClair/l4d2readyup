@@ -116,6 +116,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggle your ready status");
 	RegConsoleCmd("sm_unready", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	RegConsoleCmd("sm_return", Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
+    	RegConsoleCmd("sm_cast", Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
 	RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
 
@@ -209,7 +210,7 @@ stock bool:IsIDCaster(const String:AuthID[])
 	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
-public Action:Caster_Cmd(client, args)
+public Action:Cast_Cmd(client, args)
 {	
     	decl String:buffer[64];
 	GetClientAuthString(client, buffer, sizeof(buffer));
@@ -218,15 +219,23 @@ public Action:Caster_Cmd(client, args)
 	{
 		SetTrieValue(casterTrie, buffer, 1);
 		ReplyToCommand(client, "You have registered yourself as a caster");
-		return Plugin_Handled;
 	}
-	
+	else
+	{
+		ReplyToCommand(client, "Your SteamID was not found in this server's caster whitelist. Contact the admins to get approved.");
+	}
+	return Plugin_Handled;
+}
+
+public Action:Caster_Cmd(client, args)
+{	
 	if (args < 1)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
 		return Plugin_Handled;
 	}
 	
+    	decl String:buffer[64];
 	GetCmdArg(1, buffer, sizeof(buffer));
 	
 	new target = FindTarget(client, buffer, true, false);
