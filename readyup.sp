@@ -216,15 +216,15 @@ public Action:Caster_Cmd(client, args)
 	new index = FindStringInArray(allowedCastersTrie, buffer);
 	if (index != -1)
 	{
-	SetTrieValue(casterTrie, buffer, 1);
-	ReplyToCommand(client, "You have registered yourself as a caster");
-	return Plugin_Handled;
+		SetTrieValue(casterTrie, buffer, 1);
+		ReplyToCommand(client, "You have registered yourself as a caster");
+		return Plugin_Handled;
 	}
 	
 	if (args < 1)
 	{
-	ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
-	return Plugin_Handled;
+		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
+		return Plugin_Handled;
 	}
 	
 	GetCmdArg(1, buffer, sizeof(buffer));
@@ -232,15 +232,15 @@ public Action:Caster_Cmd(client, args)
 	new target = FindTarget(client, buffer, true, false);
 	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 	{
-	if (GetClientAuthString(target, buffer, sizeof(buffer)))
-	{
-	    SetTrieValue(casterTrie, buffer, 1);
-	    ReplyToCommand(client, "Registered %N as a caster", target);
-	}
-	else
-	{
-	    ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
-	}
+		if (GetClientAuthString(target, buffer, sizeof(buffer)))
+		{
+			SetTrieValue(casterTrie, buffer, 1);
+			ReplyToCommand(client, "Registered %N as a caster", target);
+		}
+		else
+		{
+		    	ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+		}
 	}
 	return Plugin_Handled;
 }
@@ -257,13 +257,13 @@ public Action:AddCasterSteamID_Cmd(args)
 	GetCmdArg(1, buffer, sizeof(buffer));
 	if (buffer[0] != EOS) 
 	{
-	new index = FindStringInArray(allowedCastersTrie, buffer);
-	if (index == -1)
-	{
-	    PushArrayString(allowedCastersTrie, buffer);
-	    PrintToServer("[casters_database] Added '%s'", buffer);
-	}
-	else PrintToServer("[casters_database] '%s' already exists", buffer);
+		new index = FindStringInArray(allowedCastersTrie, buffer);
+		if (index == -1)
+		{
+			PushArrayString(allowedCastersTrie, buffer);
+			PrintToServer("[casters_database] Added '%s'", buffer);
+		}
+		else PrintToServer("[casters_database] '%s' already exists", buffer);
 	}
 	else PrintToServer("[casters_database] No args specified / empty buffer");
 	return Plugin_Handled;
