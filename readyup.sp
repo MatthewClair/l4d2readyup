@@ -18,7 +18,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "8",
+	version = "8.1",
 	url = ""
 };
 
@@ -59,6 +59,8 @@ new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
 
+new Handle:allowedCastersTrie;
+
 new String:countdownSound[MAX_SOUNDS][]=
 {
 	"/npc/moustachio/strengthattract01.wav",
@@ -95,6 +97,7 @@ public OnPluginStart()
 	HookEvent("player_team", PlayerTeam_Event);
 
 	casterTrie = CreateTrie();
+	allowedCastersTrie = CreateTrie();
 
 	director_no_specials = FindConVar("director_no_specials");
 	god = FindConVar("god");
@@ -113,7 +116,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggle your ready status");
 	RegConsoleCmd("sm_unready", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	RegConsoleCmd("sm_return", Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
+    	RegConsoleCmd("sm_cast", Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
+	RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
 
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
@@ -205,17 +210,34 @@ stock bool:IsIDCaster(const String:AuthID[])
 	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
+public Action:Cast_Cmd(client, args)
+{	
+    	decl String:buffer[64];
+	GetClientAuthString(client, buffer, sizeof(buffer));
+	new index = FindStringInArray(allowedCastersTrie, buffer);
+	if (index != -1)
+	{
+		SetTrieValue(casterTrie, buffer, 1);
+		ReplyToCommand(client, "You have registered yourself as a caster");
+	}
+	else
+	{
+		ReplyToCommand(client, "Your SteamID was not found in this server's caster whitelist. Contact the admins to get approved.");
+	}
+	return Plugin_Handled;
+}
+
 public Action:Caster_Cmd(client, args)
-{
+{	
 	if (args < 1)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
 		return Plugin_Handled;
 	}
 	
-	decl String:buffer[64];
+    	decl String:buffer[64];
 	GetCmdArg(1, buffer, sizeof(buffer));
-
+	
 	new target = FindTarget(client, buffer, true, false);
 	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 	{
@@ -226,7 +248,7 @@ public Action:Caster_Cmd(client, args)
 		}
 		else
 		{
-			ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+		    	ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 		}
 	}
 	return Plugin_Handled;
@@ -235,6 +257,24 @@ public Action:Caster_Cmd(client, args)
 public Action:ResetCaster_Cmd(args)
 {
 	ClearTrie(casterTrie);
+	return Plugin_Handled;
+}
+
+public Action:AddCasterSteamID_Cmd(args)
+{
+	decl String:buffer[128];
+	GetCmdArg(1, buffer, sizeof(buffer));
+	if (buffer[0] != EOS) 
+	{
+		new index = FindStringInArray(allowedCastersTrie, buffer);
+		if (index == -1)
+		{
+			PushArrayString(allowedCastersTrie, buffer);
+			PrintToServer("[casters_database] Added '%s'", buffer);
+		}
+		else PrintToServer("[casters_database] '%s' already exists", buffer);
+	}
+	else PrintToServer("[casters_database] No args specified / empty buffer");
 	return Plugin_Handled;
 }
 
