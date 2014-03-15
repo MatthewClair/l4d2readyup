@@ -18,7 +18,7 @@ public Plugin:myinfo =
 	name = "L4D2 Ready-Up",
 	author = "CanadaRox",
 	description = "New and improved ready-up plugin.",
-	version = "8",
+	version = "8.2",
 	url = ""
 };
 
@@ -36,8 +36,9 @@ new Handle:l4d_ready_cfg_name;
 new Handle:l4d_ready_survivor_freeze;
 new Handle:l4d_ready_max_players;
 new Handle:l4d_ready_delay;
-new Handle:l4d_ready_blips;
+new Handle:l4d_ready_enable_sound;
 new Handle:l4d_ready_chuckle;
+new Handle:l4d_ready_live_sound;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -58,6 +59,9 @@ new bool:isPlayerReady[MAXPLAYERS + 1];
 new footerCounter = 0;
 new readyDelay;
 new bool:blockSecretSpam[MAXPLAYERS + 1];
+new String:liveSound[256];
+
+new Handle:allowedCastersTrie;
 
 new String:countdownSound[MAX_SOUNDS][]=
 {
@@ -87,14 +91,16 @@ public OnPluginStart()
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_PLUGIN, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
-	l4d_ready_blips = CreateConVar("l4d_ready_blips", "1", "Enable blips during countdown");
-	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "1", "Enable chuckle during countdown");
+	l4d_ready_enable_sound = CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
+	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "buttons/blip2.wav", "The sound that plays when a round goes live");
+	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
 	HookEvent("player_team", PlayerTeam_Event);
 
 	casterTrie = CreateTrie();
+	allowedCastersTrie = CreateTrie();
 
 	director_no_specials = FindConVar("director_no_specials");
 	god = FindConVar("god");
@@ -113,7 +119,9 @@ public OnPluginStart()
 	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggle your ready status");
 	RegConsoleCmd("sm_unready", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	RegConsoleCmd("sm_return", Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
+    	RegConsoleCmd("sm_cast", Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
+	RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
 
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
@@ -132,9 +140,10 @@ public OnPluginEnd()
 public OnMapStart()
 {
 	/* OnMapEnd needs this to work */
+	GetConVarString(l4d_ready_live_sound, liveSound, sizeof(liveSound));
 	PrecacheSound(SOUND);
 	PrecacheSound("buttons/blip1.wav");
-	PrecacheSound("buttons/blip2.wav");
+	PrecacheSound(liveSound);
 	for (new i = 0; i < MAX_SOUNDS; i++)
 	{
 		PrecacheSound(countdownSound[i]);
@@ -205,17 +214,34 @@ stock bool:IsIDCaster(const String:AuthID[])
 	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
+public Action:Cast_Cmd(client, args)
+{	
+    	decl String:buffer[64];
+	GetClientAuthString(client, buffer, sizeof(buffer));
+	new index = FindStringInArray(allowedCastersTrie, buffer);
+	if (index != -1)
+	{
+		SetTrieValue(casterTrie, buffer, 1);
+		ReplyToCommand(client, "You have registered yourself as a caster");
+	}
+	else
+	{
+		ReplyToCommand(client, "Your SteamID was not found in this server's caster whitelist. Contact the admins to get approved.");
+	}
+	return Plugin_Handled;
+}
+
 public Action:Caster_Cmd(client, args)
-{
+{	
 	if (args < 1)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
 		return Plugin_Handled;
 	}
 	
-	decl String:buffer[64];
+    	decl String:buffer[64];
 	GetCmdArg(1, buffer, sizeof(buffer));
-
+	
 	new target = FindTarget(client, buffer, true, false);
 	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 	{
@@ -226,7 +252,7 @@ public Action:Caster_Cmd(client, args)
 		}
 		else
 		{
-			ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+		    	ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 		}
 	}
 	return Plugin_Handled;
@@ -235,6 +261,24 @@ public Action:Caster_Cmd(client, args)
 public Action:ResetCaster_Cmd(args)
 {
 	ClearTrie(casterTrie);
+	return Plugin_Handled;
+}
+
+public Action:AddCasterSteamID_Cmd(args)
+{
+	decl String:buffer[128];
+	GetCmdArg(1, buffer, sizeof(buffer));
+	if (buffer[0] != EOS) 
+	{
+		new index = FindStringInArray(allowedCastersTrie, buffer);
+		if (index == -1)
+		{
+			PushArrayString(allowedCastersTrie, buffer);
+			PrintToServer("[casters_database] Added '%s'", buffer);
+		}
+		else PrintToServer("[casters_database] '%s' already exists", buffer);
+	}
+	else PrintToServer("[casters_database] No args specified / empty buffer");
 	return Plugin_Handled;
 }
 
@@ -731,17 +775,20 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 		PrintHintTextToAll("Round is live!");
 		InitiateLive();
 		readyCountdownTimer = INVALID_HANDLE;
-		if (GetConVarBool(l4d_ready_chuckle))
+		if (GetConVarBool(l4d_ready_enable_sound))
 		{
-			EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
+			if (GetConVarBool(l4d_ready_chuckle))
+			{
+				EmitSoundToAll(countdownSound[GetRandomInt(0,MAX_SOUNDS-1)]);
+			}
+			else { EmitSoundToAll(liveSound, _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5); }
 		}
-		else { EmitSoundToAll("buttons/blip2.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5); }
 		return Plugin_Stop;
 	}
 	else
 	{
 		PrintHintTextToAll("Live in: %d\nSay !unready to cancel", readyDelay);
-		if (GetConVarBool(l4d_ready_blips))
+		if (GetConVarBool(l4d_ready_enable_sound))
 		{
 			EmitSoundToAll("buttons/blip1.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		}
