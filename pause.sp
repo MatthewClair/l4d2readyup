@@ -11,7 +11,7 @@ public Plugin:myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox",
 	description = "Adds pause functionality without breaking pauses",
-	version = "8",
+	version = "8.1",
 	url = ""
 };
 
@@ -46,7 +46,9 @@ new Handle:pauseForward;
 new Handle:unpauseForward;
 new Handle:deferredPauseTimer;
 new Handle:l4d_ready_delay;
-new Handle:l4d_ready_blips;
+new Handle:l4d_ready_enable_sound;
+new Handle:l4d_ready_live_sound;
+new String:liveSound[256];
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -79,7 +81,8 @@ public OnPluginStart()
 
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_PLUGIN, true, 0.0);
 	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_PLUGIN, true, 0.0);
-	l4d_ready_blips = CreateConVar("l4d_ready_blips", "1", "Enable beep on unpause");
+	l4d_ready_enable_sound = CreateConVar("l4d_ready_enable_sound", "1", "Enable sound on unpause");
+	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "buttons/blip2.wav", "The sound that plays when a round goes live");
 
 	HookEvent("round_end", RoundEnd_Event, EventHookMode_PostNoCopy);
 }
@@ -115,7 +118,8 @@ public OnClientPutInServer(client)
 
 public OnMapStart()
 {
-	PrecacheSound("buttons/blip2.wav");
+	GetConVarString(l4d_ready_live_sound, liveSound, sizeof(liveSound));
+	PrecacheSound(liveSound);
 }
 
 public RoundEnd_Event(Handle:event, const String:name[], bool:dontBroadcast)
@@ -361,9 +365,9 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	if (readyDelay == 0)
 	{
 		PrintToChatAll("Round is live!");
-		if (GetConVarBool(l4d_ready_blips))
+		if (GetConVarBool(l4d_ready_enable_sound))
 		{
-			CreateTimer(0.01, BlipDelay_Timer);
+			CreateTimer(0.01, LiveSoundDelay_Timer);
 		}
 		Unpause();
 		return Plugin_Stop;
@@ -376,9 +380,9 @@ public Action:ReadyCountdownDelay_Timer(Handle:timer)
 	return Plugin_Continue;
 }
 
-public Action:BlipDelay_Timer(Handle:timer)
+public Action:LiveSoundDelay_Timer(Handle:timer)
 {
-	EmitSoundToAll("buttons/blip2.wav", _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+	EmitSoundToAll(liveSound, _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 }
 
 CancelFullReady(client)
