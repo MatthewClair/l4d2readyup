@@ -310,6 +310,7 @@ Pause()
 Unpause()
 {
 	isPaused = false;
+	adminPause = false;
 
 	new bool:unpauseProcessed = false;
 	for (new client = 1; client <= MaxClients; client++)
