@@ -152,3 +152,16 @@ Setting this Cvar to 1 will stop the plugin from printing "Player has become a s
 
 ##Survivor\_Limit Note
 Changing `survivor_limit` without restarting the map afterwards may have issues.  Increasing the limit should work as long as survivors have not left the saferoom.  Decreasing the limit can result in some players not gaining points correctly.  If you decide to change `survivor_limit` without restarting the map you are responsible for manually fixing issues such as duplicate bots.
+
+##License
+SourcePawn is Copyright (C) 2006-2008 AlliedModders LLC.  All rights reserved.  
+SourceMod is Copyright (C) 2006-2008 AlliedModders LLC.  All rights reserved.  
+Pawn and SMALL are Copyright (C) 1997-2008 ITB CompuPhase.  
+Source is Copyright (C) Valve Corporation.  
+All trademarks are property of their respective owners.  
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
