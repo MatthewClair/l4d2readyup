@@ -130,7 +130,7 @@ public OnClientPutInServer(client)
 	{
 		if (!IsFakeClient(client))
 			PrintToChatAll("\x01[SM] \x03%N \x01is now fully loaded in game", client);
-			ChangeClientTeam(client, 1);
+			ChangeClientTeam(client, _:L4D2Team_Spectator);
 	}
 }
 
